@@ -3,10 +3,35 @@ from variables import name_list, deck_list
 from collections import Counter
 clear = lambda: os.system('clear')
 
+
+# Modify code to initialize user class as player 1. Build functionality to display their hand and allow choice of ante card
+
+
 GREEN_BG = '\033[42m\033[30m\033[1m'
 YELLOW_BG = '\033[43m\033[30m\033[1m'
 GRAY_BG = '\033[100m\033[37m\033[1m'
 RESET = '\033[0m'
+
+# Background colors with black text and bold
+RED_BG = '\033[41m\033[30m\033[1m'
+BLUE_BG = '\033[44m\033[30m\033[1m'
+MAGENTA_BG = '\033[45m\033[30m\033[1m'
+CYAN_BG = '\033[46m\033[30m\033[1m'
+WHITE_BG = '\033[47m\033[30m\033[1m'
+
+# Bright background colors with black text and bold
+BRIGHT_RED_BG = '\033[101m\033[30m\033[1m'
+BRIGHT_GREEN_BG = '\033[102m\033[30m\033[1m'
+BRIGHT_YELLOW_BG = '\033[103m\033[30m\033[1m'
+BRIGHT_BLUE_BG = '\033[104m\033[30m\033[1m'
+BRIGHT_MAGENTA_BG = '\033[105m\033[30m\033[1m'
+BRIGHT_CYAN_BG = '\033[106m\033[30m\033[1m'
+BRIGHT_WHITE_BG = '\033[107m\033[30m\033[1m'
+
+# If you need white text instead of black on darker backgrounds
+BLUE_BG_WHITE = '\033[44m\033[37m\033[1m'
+RED_BG_WHITE = '\033[41m\033[37m\033[1m'
+MAGENTA_BG_WHITE = '\033[45m\033[37m\033[1m'
 
 refactored_list = []
 for i in range(len(deck_list)):
@@ -25,6 +50,53 @@ my_var_ref = {}
 # --------------------------------------
 
 #Classes
+class User():
+  def __init__(self, player_id, name, hand, starting_gold):
+    self.id = player_id
+    self.name = name
+    self.hand = hand
+    self.gold = starting_gold
+    self.hand_size = len(hand)
+    self.flight = []
+
+  def __repr__(self):
+    return self.name
+
+  def draw(self, num):
+    for i in range(num):
+      new_card = draw_pile.pop()
+      self.hand.append(new_card)
+      check_reshuffle()
+    if num == 1:
+      print(YELLOW_BG + f"{self.name} draws {num} card" + RESET)
+    elif num > 1:
+      print(YELLOW_BG + f"{self.name}  draws {num} cards" + RESET)
+    else:
+      print(RED_BG + "CARD NUM PRINT ERROR" + RESET)
+
+    print(f"You have drawn: {new_card}")
+
+  def receive_gold(self, amount):
+    self.gold += amount
+
+  def pay_gold(self, amount, to_player=None):
+    self.gold -= amount
+    if to_player:
+      to_player.receive_gold(amount)
+
+  def ante_card(self):
+    #Ante lowest str card
+    self.card_to_ante = self.hand[0]
+    for i in range(len(self.hand)):
+      if self.hand[i][1] < self.card_to_ante[1]:
+        self.card_to_ante = self.hand[i]
+
+    # Remove from player hand and return card and the player it came from
+    self.hand.remove(self.card_to_ante)
+    return [self, self.card_to_ante]
+  
+  def main_turn(self):
+    pass
 
 class Player():
 
@@ -53,14 +125,20 @@ class Player():
       self.hand.append(new_card)
       check_reshuffle()
     if num == 1:
-      print(f"{self.name} draws {num} card")
+      print(YELLOW_BG + f"{self.name} draws {num} card" + RESET)
     elif num > 1:
-      print(f"{self.name}  draws {num} cards")
+      print(YELLOW_BG + f"{self.name}  draws {num} cards" + YELLOW_BG)
     else:
-      print("CARD NUM PRINT ERROR")
+      print(RED_BG + "CARD NUM PRINT ERROR" + RESEt)
 
-  def pay_gold(self, amount):
+  def receive_gold(self, amount):
+    self.gold += amount
+
+  def pay_gold(self, amount, to_player=None):
     self.gold -= amount
+    if to_player:
+      print(f"{self.name} pays {amount} gold to {to_player}.")
+      to_player.receive_gold(amount)
 
   def ante_card(self):
     #Ante lowest str card
@@ -246,4 +324,5 @@ stakes = 0
 current_round_leader = None
 
 start_gambit()
+
 
