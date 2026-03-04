@@ -3,9 +3,11 @@ from variables import name_list, deck_list
 from collections import Counter
 clear = lambda: os.system('clear')
 
-
-# Begin working on player main turn
+# *** Add player turns beginning with the round leader ***
+# Review order_by_str function
+# when choosing a card, allow player to sort hand by type or str with commands
 # track next_round_leader for highest played str
+# Change Print statements that as the use if they are ready to procede after each screen, for cleaner printing and readibility
 
 
 GREEN_BG = '\033[42m\033[30m\033[1m'
@@ -34,6 +36,7 @@ BLUE_BG_WHITE = '\033[44m\033[37m\033[1m'
 RED_BG_WHITE = '\033[41m\033[37m\033[1m'
 MAGENTA_BG_WHITE = '\033[45m\033[37m\033[1m'
 
+# Create basic Deck list for phase one of code writing
 refactored_list = []
 for i in range(len(deck_list)):
   card_strength = int(deck_list[i][-2:].strip())
@@ -42,9 +45,7 @@ for i in range(len(deck_list)):
 deck_list = refactored_list
 draw_pile = deck_list
 discard_pile = []
-use_pile = []
 ante_pile = []
-my_var_ref = {}
 
 # --------------------------------------
 # --------------------------------------
@@ -59,12 +60,14 @@ class User():
     self.gold = starting_gold
     self.hand_size = len(hand)
     self.flight = []
+    self.cards_played_this_gambit = []
 
   def __repr__(self):
     return self.name
 
   def draw(self, num):
     print(f"{self.name} draws {num} card(s)")
+    # With Colors
     # if num == 1:
     #   print(BLUE_BG_WHITE + f"{self.name} draws {num} card" + RESET)
     # elif num > 1:
@@ -94,62 +97,53 @@ class User():
       flight_reformatted = [value[0] for value in self.flight]
       print(f"  Flight: {', '.join(flight_reformatted)}")
 
-  def ante_card(self):
-    print("YOUR HAND:")
-    for i, card in enumerate(self.hand, 1):
-      print(f"  {i}. {card[0]}")
-    
-    card_index = None
-    while card_index not in range(1, self.hand_size + 1):
-      try:
-        card_index = int(input(f"Enter the card number you want to ante (1-{self.hand_size}): "))
-      except ValueError:
-        print("Please enter a valid number.")
-        card_index = None
-    
-    card_to_ante = self.hand[card_index - 1]
-    self.hand.remove(card_to_ante)
-    return [self, card_to_ante]
-    
-    # #Ante lowest str card
-    # self.card_to_ante = self.hand[0]
-    # for i in range(len(self.hand)):
-    #   if self.hand[i][1] < self.card_to_ante[1]:
-    #     self.card_to_ante = self.hand[i]
+  def order_by_str(self):
+    self.hand = self.hand.sort()
 
-    # # Remove from player hand and return card and the player it came from
-    # self.hand.remove(self.card_to_ante)
+  def choose_card(self):
+    
+    # Add functionality for additional sorting commands
+    card_chosen = False
+    while not card_chosen:
+      print("YOUR HAND:")
+      for i, card in enumerate(self.hand, 1):
+        print(f"  {i}. {card[0]}")
+      
+      acceptable_inputs = range(1, self.hand_size + 1)
+      #acceptable_inputs += [other functions here like ordering list by str or type]
+      
+      card_index = None
+      while card_index not in acceptable_inputs:
+        card_index = input(f"Enter the card number you want to ante (1-{self.hand_size}): ")
+        try:
+          card_index = int(card_index)
+          card_chosen = True
+        except ValueError:
+          # CHECK ADDITIONAL FUNCTIONS
+          # if card_index in acceptable_inputs:
+          #   pass
+          print("Please enter a valid number.")
+          card_index = None
+    
+    chosen_card = self.hand[card_index - 1]
+    return chosen_card
+
+  def ante_card(self):
+    ante_card = self.choose_card()
+    self.hand.remove(ante_card)
+    return [self, ante_card]
   
   def main_turn(self,last_str_played=None):
     print(f"\n--------------- PLAYER TURN ---------------")
     # Print Hand
-    print("YOUR HAND:")
-    for i, card in enumerate(self.hand, 1):
-      print(f"  {i}. {card[0]}")
-    # Demand card to play
-    card_index = None
-    while card_index not in range(1, self.hand_size + 1):
-      try:
-        if last_str_played:
-          print(f"The last card played was STR {last_str_played}")
-        card_index = int(input(f"Enter the card number you want to play (1-{self.hand_size}): "))
-      except ValueError:
-        print("Please enter a valid number.")
-        card_index = None
-
-    card_to_play = self.hand[card_index - 1]
+    card_to_play = self.choose_card()
+    # if card_to_play[1] >= last_str_played:
+    #   power_activates = True
+    #   card.call_effect
     self.flight.append(card_to_play)
     self.hand.remove(card_to_play)
 
 class Player():
-
-  # ----- VAR lIST -----
-  # self.id = 0-5
-  # self.name = "My Name"
-  # self.hand = [["Silver 4", [4]], ["Green 5", 5]]
-  # self.gold = 20-60
-  # self.hand_size = len(hand)
-  # self.flight = [["Silver 4", [4]], ["Green 5", 5]]
 
   def __init__(self, player_id, name, hand, starting_gold):
     self.id = player_id
@@ -158,6 +152,7 @@ class Player():
     self.gold = starting_gold
     self.hand_size = len(hand)
     self.flight = []
+    self.cards_played_this_gambit = []
 
   def __repr__(self):
     return self.name
@@ -204,7 +199,7 @@ class Player():
     self.hand.remove(self.card_to_ante)
     return [self, self.card_to_ante]
   
-  def main_turn(self):
+  def main_turn(self, last_str_played=None):
     # determine_strategy() function
 
     # plays strongest cards
@@ -214,10 +209,11 @@ class Player():
       if item[1] > self.strongest_card[1]:
         self.strongest_card = item
     # Add to flight, remove from hand
-    self.flight.append(strongest_card)
-    self.hand.remove(strongest_card)
+    self.card_to_play = self.strongest_card
+    self.flight.append(self.card_to_play)
+    self.hand.remove(self.card_to_play)
+    print(f"{self} plays {self.card_to_play[0]} ")
 
-    
 # --------------------------------------
 # --------------------------------------
 # --------------------------------------
@@ -226,11 +222,6 @@ class Player():
 def shuffle_deck():
   random.shuffle(draw_pile)
   print("Deck was shuffled.")
-
-def print_ref():
-  global my_var_ref
-  print("my_var_ref:")
-  print('\n'.join(GREEN_BG + f"{key}" + RESET + f": {value}" for key, value in my_var_ref.items()))
 
 def check_reshuffle():
   global draw_pile
@@ -327,25 +318,35 @@ def ante_phase():
   return first_player, highest_str_value
 
 def start_gambit():
-  global round_leader, gambit_number
+  global round_leader, gambit_number, player_list#, highest_card_so_far
   gambit_number += 1
-  print(f"BEGIN GAMBIT {gambit_number}")
+  print(f"START GAMBIT {gambit_number}")
+  time.sleep(2)
+  clear()
   print("--------------- PLAYER ANTE ---------------")
-  # ANTE PHASE RETURNS A PLAYER CLASS
+  # ANTE PHASE RETURNS A PLAYER CLASS, GOLD
   round_leader, ante_gold = ante_phase()
   print(f"\nEach player antes {ante_gold} gold.\n{round_leader} will start the round.")
   time.sleep(2)
   print_board()
 
-  highest_str_card_player = None
-  # Each player 
+  highest_card_so_far = None
+  # Each player
+  for i in range(rounds_in_gambit):
+    # Build a reordered list starting from the round leader
+    leader_index = player_list.index(round_leader)
+    ordered_players = player_list[leader_index:] + player_list[:leader_index]
+
+    for player in ordered_players:
+      player.main_turn()
+    print_board()
 
 # --------------------------------------
 # --------------------------------------
 # --------------------------------------    
 
 # ---------- Number of Players ----------
-player_count = 0
+player_count = None
 while player_count not in ["2","3","4","5","6", ""]:
   player_count = input("How many players will there be? (2-6): ")
   if player_count == "":
@@ -354,12 +355,14 @@ player_count = int(player_count)
 clear()
 
 # ---------- Player Names ----------
+#print("Choosing player names . . .")
 user_name = "Player 1"
 player_names_list = [user_name]
 num = 1
 for i in range(player_count):
   num += 1
   player_names_list.append(f"Computer {num}")
+
 # ----- FOR ACTUAL NAMES -----
 # user_name = input("Enter your character's name: ")
 # if user_name == "":
@@ -374,40 +377,38 @@ for i in range(player_count):
 
 # ---------- Starting Hands ----------
 shuffle_deck()
+#print("Dealing starting hands . . .")
 hand_lists = []
 for i in range(player_count):
   player_hand = []
   for i in range(6):
     card = draw_pile.pop()
     player_hand.append(card)
-    use_pile.append(card)
   hand_lists.append(player_hand)
 
 # ---------- Initialize Classes ----------
+#print("Calculating starting gold . . .")
 starting_gold = 10 * player_count
 player_list = []
 
+#print("Initializing player classes . . .")
 # USER CLASS
 player_list.append(User(0, player_names_list[0], hand_lists[0], starting_gold))
-my_var_ref[f"User's Hand"] = hand_lists[0]
 
 # Computer classes
 for i in range(player_count - 1):
   player_list.append(Player(i+1, player_names_list[i+1], hand_lists[i+1], starting_gold))
-  my_var_ref[f"Player {i}'s hand"] = hand_lists[i]
-
-# ---------- Variable Reference ----------
-my_var_ref["player_count"] = player_count
-my_var_ref["user_name"] = user_name
-my_var_ref["player_names_list"] = player_names_list
-my_var_ref["starting gold"] = starting_gold
-my_var_ref["use_pile"] = use_pile
-my_var_ref["hand_lists (starting)"] = hand_lists
 
 # ---------- Additional Variables ----------
+#print("Setting final game variables . . .\n")
 stakes = 0
 round_leader = None
 gambit_number = 0
+round_number = 0
+highest_card_so_far = None
+rounds_in_gambit = 3
 
 # ---------- Start Game ----------
 start_gambit()
+
+
