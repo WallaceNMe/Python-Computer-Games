@@ -4,11 +4,20 @@ from collections import Counter
 clear = lambda: os.system('clear')
 
 # *** Add player turns beginning with the round leader ***
-# Review order_by_str function
+# Add additional colors for the player's name that has played the highest str card so far
+# Remove enter for player choice auto select
 # when choosing a card, allow player to sort hand by type or str with commands
 # track next_round_leader for highest played str
 # Change Print statements that as the use if they are ready to procede after each screen, for cleaner printing and readibility
 
+# Later
+# Compile a README or game manual that prints at the start of the game. Include choose card commands
+# Computers that will steal cards will take the last or first card in the player's hand to try and get a high card. Players can shuffle their hands before choosing which card to give up to avoid this. 
+
+# COMMANDS
+# ss: sorts low to high
+# sh: sorts high to low
+# sl: sorts low to high
 
 GREEN_BG = '\033[42m\033[30m\033[1m'
 YELLOW_BG = '\033[43m\033[30m\033[1m'
@@ -42,6 +51,7 @@ for i in range(len(deck_list)):
   card_strength = int(deck_list[i][-2:].strip())
   refactored_list.append([deck_list[i], card_strength])
 
+# Card Lists
 deck_list = refactored_list
 draw_pile = deck_list
 discard_pile = []
@@ -67,13 +77,6 @@ class User():
 
   def draw(self, num):
     print(f"{self.name} draws {num} card(s)")
-    # With Colors
-    # if num == 1:
-    #   print(BLUE_BG_WHITE + f"{self.name} draws {num} card" + RESET)
-    # elif num > 1:
-    #   print(BLUE_BG_WHITE + f"{self.name}  draws {num} cards" + RESET)
-    # else:
-    #   print(RED_BG + "CARD NUM PRINT ERROR" + RESET)
     for i in range(num):
       new_card = draw_pile.pop()
       self.hand.append(new_card)
@@ -97,44 +100,91 @@ class User():
       flight_reformatted = [value[0] for value in self.flight]
       print(f"  Flight: {', '.join(flight_reformatted)}")
 
-  def order_by_str(self):
-    self.hand = self.hand.sort()
+  def find_lowest_str(self):
+    self.lowest_str_card = self.hand[0]
+    for i in range(len(self.hand)):
+      if self.hand[i][1] < self.lowest_str_card[1]:
+        self.lowest_str_card = self.hand[i]
+    return self.lowest_str_card
 
-  def choose_card(self):
+  def choose_card(self, is_ante=False, current_turn=True, is_sacrifice=False):
     
     # Add functionality for additional sorting commands
-    card_chosen = False
-    while not card_chosen:
+
+    #NUMBERS
+    acceptable_inputs = list(range(1, self.hand_size + 1))
+    #ADDITIONAL COMMANDS
+    additional = ["", "sc", "ss", "sh", "sl"]
+    for i in additional:
+      acceptable_inputs.append(i)
+
+    # Reprints will be for sorting commands
+    reprint_necessary = True
+    while reprint_necessary:
+      clear()
+      if is_ante:
+        print("--------------- PLAYER ANTE ----------------")
+      elif is_sacrifice:
+        print("---------- SURRENDER CARD ----------")
+      else: 
+        print("--------------- PLAYER TURN ---------------")
       print("YOUR HAND:")
+      # List Cards
       for i, card in enumerate(self.hand, 1):
         print(f"  {i}. {card[0]}")
+      print("CMD: ss, sl, sh, sc")
+
       
-      acceptable_inputs = range(1, self.hand_size + 1)
-      #acceptable_inputs += [other functions here like ordering list by str or type]
-      
-      card_index = None
-      while card_index not in acceptable_inputs:
-        card_index = input(f"Enter the card number you want to ante (1-{self.hand_size}): ")
+      returned_input = None
+      while returned_input not in acceptable_inputs:
+        chosen_card = None
+        returned_input = input(f"Choose a card (1-{self.hand_size}): ")
         try:
-          card_index = int(card_index)
-          card_chosen = True
+          returned_input = int(returned_input)
+          if returned_input in acceptable_inputs:
+            chosen_card = self.hand[returned_input - 1]
+            reprint_necessary = False
+          else:
+            print(f"Please enter a number between 1 and {self.hand_size}.")
+            returned_input = None
         except ValueError:
           # CHECK ADDITIONAL FUNCTIONS
-          # if card_index in acceptable_inputs:
-          #   pass
-          print("Please enter a valid number.")
-          card_index = None
+          if returned_input in acceptable_inputs:
+            # If ENTER
+            if returned_input == "":
+              # Find lowest str card
+              chosen_card = self.find_lowest_str()
+              reprint_necessary = False
+            elif returned_input in ["ss", "sl"]:
+              # Changing reverse changes order
+              self.hand.sort(key=lambda card: card[1], reverse = False)
+              reprint_necessary = True
+              # EXIT to reprint
+              break
+            elif returned_input == "sh":
+              # Changing reverse changes order
+              self.hand.sort(key=lambda card: card[1], reverse = True)
+              reprint_necessary = True
+              # EXIT to reprint
+              break
+            elif returned_input == "sc":
+              self.hand.sort(key=lambda card: card[0].split()[0])
+              reprint_necessary = True
+              # EXIT to reprint
+              break
+          else:    
+            print("Please enter a valid number or command.")
+            returned_input = None
     
-    chosen_card = self.hand[card_index - 1]
+    # Outside choice loop
     return chosen_card
 
   def ante_card(self):
-    ante_card = self.choose_card()
+    ante_card = self.choose_card(True,False,False)
     self.hand.remove(ante_card)
     return [self, ante_card]
   
   def main_turn(self,last_str_played=None):
-    print(f"\n--------------- PLAYER TURN ---------------")
     # Print Hand
     card_to_play = self.choose_card()
     # if card_to_play[1] >= last_str_played:
@@ -188,14 +238,16 @@ class Player():
       flight_reformatted = [value[0] for value in self.flight]
       print(f"  Flight: {', '.join(flight_reformatted)}")
 
+  def find_lowest_str(self):
+    self.lowest_str_card = self.hand[0]
+    for i in range(len(self.hand)):
+      if self.hand[i][1] < self.lowest_str_card[1]:
+        self.lowest_str_card = self.hand[i]
+    return self.lowest_str_card
+
   def ante_card(self):
     #Ante lowest str card
-    self.card_to_ante = self.hand[0]
-    for i in range(len(self.hand)):
-      if self.hand[i][1] < self.card_to_ante[1]:
-        self.card_to_ante = self.hand[i]
-
-    # Remove from player hand and return card and the player it came from
+    self.card_to_ante = self.find_lowest_str()
     self.hand.remove(self.card_to_ante)
     return [self, self.card_to_ante]
   
@@ -233,7 +285,7 @@ def check_reshuffle():
 
 def print_board():
   global stakes, round_leader, ante_pile
-  print("\n--------------- TABLE VIEW ---------------")
+  print("--------------- TABLE VIEW ---------------")
   print(f"Stakes: {stakes}")
   reformatted_ante = [value[0] for value in ante_pile]
   print(f"Ante: {", ".join(reformatted_ante)}")
@@ -242,21 +294,31 @@ def print_board():
   #print("------------------------------")
 
 def ante_phase():
-  global stakes, round_leader, ante_pile
+  global stakes, round_leader, ante_pile, player_count
   
   acceptable_ante = False
   while not acceptable_ante:
+    
+    # Clear/Print for player ante
+    clear()
+    #print("--------------- PLAYER ANTE ---------------")
+
     # Retrieve Ante Cards
     returned_list = []
     for i in range(len(player_list)):
       # Returns [Player Class, [Card, STR]]
       returned_list.append(player_list[i].ante_card())
     
+    clear()
+
     # Print ante results
-    print("\n--------------- ANTE PHASE ---------------")
+    print("--------------- ANTE PHASE ---------------")
     # Print Player Antes
     for i in range(len(returned_list)):
       print(f"{returned_list[i][0]} antes: {returned_list[i][1][0]}")
+    
+    #time_to_sleep = 1 + (player_count / 2)
+    #time.sleep(time_to_sleep)
 
     # ----- Check All Tied (Re-ante) -----
 
@@ -271,8 +333,7 @@ def ante_phase():
         discard_pile.append(return_value[1])
         # Draw 1
         return_value[0].draw(1)
-    # Re-ante
-    else:
+    else: # Move on
       acceptable_ante = True
   
   # ----- Resume Ante -----
@@ -310,24 +371,24 @@ def ante_phase():
         print("The previous round leader will start the next gambit.")
     else:
         # First round and all tied - random selection
-        print("All cards are tied with at least one other, so the first player will be random.")
+        print("All cards are tied with at least one other, so the first player will be chosen at random.")
         first_player = random.choice(player_list)
-        print(f"The first player will be {first_player}")
     
-  
   return first_player, highest_str_value
 
 def start_gambit():
-  global round_leader, gambit_number, player_list#, highest_card_so_far
+  global round_leader, gambit_number, player_list
   gambit_number += 1
-  print(f"START GAMBIT {gambit_number}")
-  time.sleep(2)
   clear()
-  print("--------------- PLAYER ANTE ---------------")
+  print(f"START GAMBIT {gambit_number}")
+  proceed = input("--> ")
+  #time.sleep(2)
+  clear()
   # ANTE PHASE RETURNS A PLAYER CLASS, GOLD
   round_leader, ante_gold = ante_phase()
   print(f"\nEach player antes {ante_gold} gold.\n{round_leader} will start the round.")
-  time.sleep(2)
+  proceed = input("--> ")
+  clear()
   print_board()
 
   highest_card_so_far = None
@@ -349,6 +410,7 @@ def start_gambit():
 player_count = None
 while player_count not in ["2","3","4","5","6", ""]:
   player_count = input("How many players will there be? (2-6): ")
+  # TESTING
   if player_count == "":
     player_count = "2"
 player_count = int(player_count)
@@ -407,8 +469,10 @@ gambit_number = 0
 round_number = 0
 highest_card_so_far = None
 rounds_in_gambit = 3
+winner = None
 
 # ---------- Start Game ----------
-start_gambit()
+while not winner:
+  start_gambit()
 
 
