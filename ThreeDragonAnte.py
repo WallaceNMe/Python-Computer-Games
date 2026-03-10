@@ -3,19 +3,17 @@ from variables import name_list, deck_list
 from collections import Counter
 clear = lambda: os.system('clear')
 
-# *** Add player turns beginning with the round leader ***
-# Add additional colors for the player's name that has played the highest str card so far
-# Remove enter for player choice auto select
-# when choosing a card, allow player to sort hand by type or str with commands
+# Add a TEXT_LOG variable that will store print statements a player would have seen before they take their turn and print it at the top of the choose_card function
+# Add additional colors for the player's name that has played the highest str card so far & favored winner
 # track next_round_leader for highest played str
-# Change Print statements that as the use if they are ready to procede after each screen, for cleaner printing and readibility
 
 # Later
+# Remove enter for player choice auto select
 # Compile a README or game manual that prints at the start of the game. Include choose card commands
 # Computers that will steal cards will take the last or first card in the player's hand to try and get a high card. Players can shuffle their hands before choosing which card to give up to avoid this. 
 
 # COMMANDS
-# ss: sorts low to high
+# sc: sorts by color
 # sh: sorts high to low
 # sl: sorts low to high
 
@@ -93,7 +91,7 @@ class User():
 
   def print_status(self):
       if self == round_leader:
-        print(f"{self} {CYAN_BG}(RL){RESET}: {self.gold}GP, {self.hand_size} Cards")
+        print(f"{CYAN_BG}{self}{RESET}: {self.gold}GP, {self.hand_size} Cards")
       else:
         print(f"{self}: {self.gold}GP, {self.hand_size} Cards")
       # reformat flight for printing
@@ -114,7 +112,7 @@ class User():
     #NUMBERS
     acceptable_inputs = list(range(1, self.hand_size + 1))
     #ADDITIONAL COMMANDS
-    additional = ["", "sc", "ss", "sh", "sl"]
+    additional = ["", "sc", "sh", "sl"]
     for i in additional:
       acceptable_inputs.append(i)
 
@@ -129,11 +127,11 @@ class User():
       else: 
         print("--------------- PLAYER TURN ---------------")
       print("YOUR HAND:")
+      
       # List Cards
       for i, card in enumerate(self.hand, 1):
         print(f"  {i}. {card[0]}")
-      print("CMD: ss, sl, sh, sc")
-
+      print("SORT: sl, sh, sc")
       
       returned_input = None
       while returned_input not in acceptable_inputs:
@@ -155,7 +153,7 @@ class User():
               # Find lowest str card
               chosen_card = self.find_lowest_str()
               reprint_necessary = False
-            elif returned_input in ["ss", "sl"]:
+            elif returned_input == "sl":
               # Changing reverse changes order
               self.hand.sort(key=lambda card: card[1], reverse = False)
               reprint_necessary = True
@@ -187,11 +185,14 @@ class User():
   def main_turn(self,last_str_played=None):
     # Print Hand
     card_to_play = self.choose_card()
-    # if card_to_play[1] >= last_str_played:
-    #   power_activates = True
-    #   card.call_effect
+    if last_str_played != None:
+      if card_to_play[1] >= last_str_played:
+        power_activates = True
+        print("This totally cool and rad power would have activated but I haven't really felt like coding it yet so it still doesn't. Tough.")
+        #card.call_effect
     self.flight.append(card_to_play)
     self.hand.remove(card_to_play)
+    return card_to_play
 
 class Player():
 
@@ -231,7 +232,7 @@ class Player():
 
   def print_status(self):
       if self == round_leader:
-        print(f"{self} {CYAN_BG}(RL){RESET}: {self.gold}GP, {self.hand_size} Cards")
+        print(f"{CYAN_BG}{self}{RESET}: {self.gold}GP, {self.hand_size} Cards")
       else:
         print(f"{self}: {self.gold}GP, {self.hand_size} Cards")
       # reformat flight for printing
@@ -264,7 +265,8 @@ class Player():
     self.card_to_play = self.strongest_card
     self.flight.append(self.card_to_play)
     self.hand.remove(self.card_to_play)
-    print(f"{self} plays {self.card_to_play[0]} ")
+    print(f"**{self} plays {self.card_to_play[0]}**")
+    return self.card_to_play
 
 # --------------------------------------
 # --------------------------------------
@@ -291,7 +293,6 @@ def print_board():
   print(f"Ante: {", ".join(reformatted_ante)}")
   for player in player_list:
     player.print_status()
-  #print("------------------------------")
 
 def ante_phase():
   global stakes, round_leader, ante_pile, player_count
@@ -371,35 +372,44 @@ def ante_phase():
         print("The previous round leader will start the next gambit.")
     else:
         # First round and all tied - random selection
-        print("All cards are tied with at least one other, so the first player will be chosen at random.")
+        print("\n**All cards are tied with at least one other, so the first player will be chosen at random.**")
         first_player = random.choice(player_list)
     
   return first_player, highest_str_value
 
+def proceed():
+  proceed = input("-->")
+
 def start_gambit():
-  global round_leader, gambit_number, player_list
+  global round_leader, gambit_number, player_list, last_str_played
   gambit_number += 1
   clear()
   print(f"START GAMBIT {gambit_number}")
-  proceed = input("--> ")
-  #time.sleep(2)
+  proceed()
   clear()
   # ANTE PHASE RETURNS A PLAYER CLASS, GOLD
   round_leader, ante_gold = ante_phase()
   print(f"\nEach player antes {ante_gold} gold.\n{round_leader} will start the round.")
-  proceed = input("--> ")
+  proceed()
   clear()
   print_board()
+  proceed()
 
   highest_card_so_far = None
-  # Each player
   for i in range(rounds_in_gambit):
-    # Build a reordered list starting from the round leader
+    # RL Turn progression list
     leader_index = player_list.index(round_leader)
     ordered_players = player_list[leader_index:] + player_list[:leader_index]
+  
+    last_str_played = [None]
 
+    # Players Take TUrns
     for player in ordered_players:
-      player.main_turn()
+      # Turn progression, tracking last str played
+      played_card = player.main_turn(last_str_played[-1])
+      proceed()
+      last_str_played.append(played_card[1])
+      # if card > in list, update status to next potential round leader
     print_board()
 
 # --------------------------------------
@@ -467,12 +477,11 @@ stakes = 0
 round_leader = None
 gambit_number = 0
 round_number = 0
-highest_card_so_far = None
+last_str_played = None
 rounds_in_gambit = 3
 winner = None
+text_log = []
 
 # ---------- Start Game ----------
 while not winner:
   start_gambit()
-
-
