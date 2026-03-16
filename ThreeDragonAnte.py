@@ -1,11 +1,11 @@
-import random, time, os
+import random, time, os, sys
 from variables import name_list, deck_list
 from collections import Counter
 clear = lambda: os.system('clear')
 
-# Add a TEXT_LOG variable that will store print statements a player would have seen before they take their turn and print it at the top of the choose_card function
+
+# Contine working on in_round printing with continous board updates.
 # Add additional colors for the player's name that has played the highest str card so far & favored winner
-# track next_round_leader for highest played str
 
 # Later
 # Remove enter for player choice auto select
@@ -13,9 +13,7 @@ clear = lambda: os.system('clear')
 # Computers that will steal cards will take the last or first card in the player's hand to try and get a high card. Players can shuffle their hands before choosing which card to give up to avoid this. 
 
 # COMMANDS
-# sc: sorts by color
-# sh: sorts high to low
-# sl: sorts low to high
+# 
 
 GREEN_BG = '\033[42m\033[30m\033[1m'
 YELLOW_BG = '\033[43m\033[30m\033[1m'
@@ -89,14 +87,17 @@ class User():
     if to_player:
       to_player.receive_gold(amount)
 
-  def print_status(self):
+  def print_status(self, is_round_front_runner=False):
       if self == round_leader:
-        print(f"{CYAN_BG}{self}{RESET}: {self.gold}GP, {self.hand_size} Cards")
+        name_display = f"{GRAY_BG}{self}{RESET}"
+      elif is_round_front_runner:
+        name_display = f"{BRIGHT_GREEN_BG}{self}{RESET}"
       else:
-        print(f"{self}: {self.gold}GP, {self.hand_size} Cards")
+        name_display = f"{self}"
       # reformat flight for printing
       flight_reformatted = [value[0] for value in self.flight]
-      print(f"  Flight: {', '.join(flight_reformatted)}")
+      print(f"{name_display}: {self.gold}GP, {self.hand_size} Cards")
+      print(f"  Flight - {', '.join(flight_reformatted)}")
 
   def find_lowest_str(self):
     self.lowest_str_card = self.hand[0]
@@ -105,14 +106,12 @@ class User():
         self.lowest_str_card = self.hand[i]
     return self.lowest_str_card
 
-  def choose_card(self, is_ante=False, current_turn=True, is_sacrifice=False):
-    
-    # Add functionality for additional sorting commands
+  def choose_card(self, is_ante=False, current_turn=True, last_str_played=None):
 
     #NUMBERS
     acceptable_inputs = list(range(1, self.hand_size + 1))
     #ADDITIONAL COMMANDS
-    additional = ["", "sc", "sh", "sl"]
+    additional = ["", "sc", "s", "sh"]
     for i in additional:
       acceptable_inputs.append(i)
 
@@ -120,18 +119,23 @@ class User():
     reprint_necessary = True
     while reprint_necessary:
       clear()
+      print(f"GAMBIT {gambit_number}")
+      print_board()
+      if not is_ante:
+        print_round_events()
+      
       if is_ante:
         print("--------------- PLAYER ANTE ----------------")
-      elif is_sacrifice:
-        print("---------- SURRENDER CARD ----------")
       else: 
         print("--------------- PLAYER TURN ---------------")
+      if last_str_played:
+        print(f"Previously played card was STR {last_str_played}")
       print("YOUR HAND:")
       
       # List Cards
       for i, card in enumerate(self.hand, 1):
         print(f"  {i}. {card[0]}")
-      print("SORT: sl, sh, sc")
+      print("CMD: s, sc, sh")
       
       returned_input = None
       while returned_input not in acceptable_inputs:
@@ -153,13 +157,7 @@ class User():
               # Find lowest str card
               chosen_card = self.find_lowest_str()
               reprint_necessary = False
-            elif returned_input == "sl":
-              # Changing reverse changes order
-              self.hand.sort(key=lambda card: card[1], reverse = False)
-              reprint_necessary = True
-              # EXIT to reprint
-              break
-            elif returned_input == "sh":
+            elif returned_input == "s":
               # Changing reverse changes order
               self.hand.sort(key=lambda card: card[1], reverse = True)
               reprint_necessary = True
@@ -169,6 +167,10 @@ class User():
               self.hand.sort(key=lambda card: card[0].split()[0])
               reprint_necessary = True
               # EXIT to reprint
+              break
+            elif returned_input == "sh":
+              random.shuffle(self.hand)
+              reprint_necessary = True
               break
           else:    
             print("Please enter a valid number or command.")
@@ -184,7 +186,7 @@ class User():
   
   def main_turn(self,last_str_played=None):
     # Print Hand
-    card_to_play = self.choose_card()
+    card_to_play = self.choose_card(False, True, last_str_played)
     if last_str_played != None:
       if card_to_play[1] >= last_str_played:
         power_activates = True
@@ -192,6 +194,7 @@ class User():
         #card.call_effect
     self.flight.append(card_to_play)
     self.hand.remove(card_to_play)
+    round_events.append(f"{self} Plays {card_to_play[0]}")
     return card_to_play
 
 class Player():
@@ -209,7 +212,7 @@ class Player():
     return self.name
 
   def draw(self, num):
-    print(f"{self.name} draws {num} card(s)")
+    round_events.append(f"{self} Draws {num} card(s)")
     for i in range(num):
       new_card = draw_pile.pop()
       self.hand.append(new_card)
@@ -222,22 +225,27 @@ class Player():
     #   print(RED_BG + "CARD NUM PRINT ERROR" + RESEt)
 
   def receive_gold(self, amount):
+    round_events.append(f"{Self} received {amount}GP")
     self.gold += amount
 
   def pay_gold(self, amount, to_player=None):
+    round_events.append(f"{self} pays {amount}GP")
     self.gold -= amount
     if to_player:
-      print(f"{self.name} pays {amount} gold to {to_player}.")
+      round_events.append(f"{self.name} pays {amount} gold to {to_player}.")
       to_player.receive_gold(amount)
 
-  def print_status(self):
+  def print_status(self, is_round_front_runner=False):
       if self == round_leader:
-        print(f"{CYAN_BG}{self}{RESET}: {self.gold}GP, {self.hand_size} Cards")
+        name_display = f"{GRAY_BG}{self}{RESET}"
+      elif is_round_front_runner:
+        name_display = f"{BRIGHT_GREEN_BG}{self}{RESET}"
       else:
-        print(f"{self}: {self.gold}GP, {self.hand_size} Cards")
+        name_display = f"{self}"
       # reformat flight for printing
       flight_reformatted = [value[0] for value in self.flight]
-      print(f"  Flight: {', '.join(flight_reformatted)}")
+      print(f"{name_display}: {self.gold}GP, {self.hand_size} Cards")
+      print(f"  Flight - {', '.join(flight_reformatted)}")
 
   def find_lowest_str(self):
     self.lowest_str_card = self.hand[0]
@@ -265,7 +273,7 @@ class Player():
     self.card_to_play = self.strongest_card
     self.flight.append(self.card_to_play)
     self.hand.remove(self.card_to_play)
-    print(f"**{self} plays {self.card_to_play[0]}**")
+    round_events.append(f"{self} plays {self.card_to_play[0]}")
     return self.card_to_play
 
 # --------------------------------------
@@ -285,14 +293,14 @@ def check_reshuffle():
     discard_pile = []
     shuffle_deck()
 
-def print_board():
+def print_board(round_front_runner=None):
   global stakes, round_leader, ante_pile
   print("--------------- TABLE VIEW ---------------")
   print(f"Stakes: {stakes}")
   reformatted_ante = [value[0] for value in ante_pile]
   print(f"Ante: {", ".join(reformatted_ante)}")
   for player in player_list:
-    player.print_status()
+    player.print_status(is_round_front_runner=(player == round_front_runner))
 
 def ante_phase():
   global stakes, round_leader, ante_pile, player_count
@@ -378,39 +386,82 @@ def ante_phase():
   return first_player, highest_str_value
 
 def proceed():
-  proceed = input("-->")
+    input("-->")
+    # Move cursor up one line, then clear that line
+    sys.stdout.write("\033[1A\033[2K")
+    #sys.stdout.flush()
 
 def start_gambit():
-  global round_leader, gambit_number, player_list, last_str_played
+  global round_leader, gambit_number, player_list, last_str_played, round_events
+  
   gambit_number += 1
   clear()
   print(f"START GAMBIT {gambit_number}")
   proceed()
   clear()
-  # ANTE PHASE RETURNS A PLAYER CLASS, GOLD
+  
+  # Players Draw 2 Cards
+  if gambit_number > 1:
+    for player in player_list:
+      player.draw(2)
+
+  # ANTE PHASE
   round_leader, ante_gold = ante_phase()
   print(f"\nEach player antes {ante_gold} gold.\n{round_leader} will start the round.")
   proceed()
-  clear()
-  print_board()
-  proceed()
+  #clear()
 
+  # THREE ROUNDS
   highest_card_so_far = None
-  for i in range(rounds_in_gambit):
-    # RL Turn progression list
+  rounds = [1, 2, 3]
+  for i in rounds:
+    # Define Round Leader turn progression
     leader_index = player_list.index(round_leader)
     ordered_players = player_list[leader_index:] + player_list[:leader_index]
   
     last_str_played = [None]
+    round_events = []
+    cards_played_this_round = []
 
-    # Players Take TUrns
+    # Each player takes a turn
     for player in ordered_players:
-      # Turn progression, tracking last str played
       played_card = player.main_turn(last_str_played[-1])
-      proceed()
       last_str_played.append(played_card[1])
-      # if card > in list, update status to next potential round leader
-    print_board()
+      cards_played_this_round.append((player, played_card))
+      
+      # Recalculate Front runner after each play
+      strength_values = [c[1] for _, c in cards_played_this_round]
+      strength_counts = Counter(strength_values)
+      untied_values = [v for v, count in strength_counts.items() if count == 1]
+      if untied_values:
+        highest_untied = max(untied_values)
+        round_front_runner = next(p for p, c in cards_played_this_round if c[1] == highest_untied)
+      else:
+        round_front_runner = None # all tied
+
+      in_round_print(round_front_runner)
+    
+    # Round leader found by highest untied card value
+    round_leader = round_front_runner if round_front_runner else round_leader
+    print_board(round_front_runner)
+
+def in_round_print(round_front_runner=None):
+  clear()
+  print(f"GAMBIT {gambit_number}")
+  print_board(round_front_runner)
+  #print("--------------- ROUND EVENTS ---------------")
+  print_round_events()
+  proceed()
+
+def print_round_events():
+  global round_events
+  print("--------------- ROUND EVENTS --------------")
+  if len(round_events) == 0:
+    print("")
+  else:
+    for i in round_events:
+      print(i)
+      proceed()
 
 # --------------------------------------
 # --------------------------------------
@@ -433,7 +484,7 @@ player_names_list = [user_name]
 num = 1
 for i in range(player_count):
   num += 1
-  player_names_list.append(f"Computer {num}")
+  player_names_list.append(f"Player {num}")
 
 # ----- FOR ACTUAL NAMES -----
 # user_name = input("Enter your character's name: ")
@@ -478,10 +529,13 @@ round_leader = None
 gambit_number = 0
 round_number = 0
 last_str_played = None
-rounds_in_gambit = 3
+rounds = [1, 2, 3]
 winner = None
 text_log = []
+round_events = []
 
 # ---------- Start Game ----------
 while not winner:
   start_gambit()
+
+
