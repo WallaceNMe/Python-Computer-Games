@@ -4,8 +4,8 @@ from collections import Counter
 clear = lambda: os.system('clear')
 
 
-# Contine working on in_round printing with continous board updates.
-# Add additional colors for the player's name that has played the highest str card so far & favored winner
+# Add a print that says (cards were tied so this player is the round leader)
+# End gambit functionality - Reset Var and winner
 
 # Later
 # Remove enter for player choice auto select
@@ -87,15 +87,20 @@ class User():
     if to_player:
       to_player.receive_gold(amount)
 
-  def print_status(self, is_round_front_runner=False):
+  def print_status(self, is_lead=False):
+      # Previous Leader
       if self == round_leader:
         name_display = f"{GRAY_BG}{self}{RESET}"
-      elif is_round_front_runner:
+      # Favored Leader
+      elif is_lead:
         name_display = f"{BRIGHT_GREEN_BG}{self}{RESET}"
+      # Regular
       else:
         name_display = f"{self}"
+      
       # reformat flight for printing
       flight_reformatted = [value[0] for value in self.flight]
+      
       print(f"{name_display}: {self.gold}GP, {self.hand_size} Cards")
       print(f"  Flight - {', '.join(flight_reformatted)}")
 
@@ -108,33 +113,30 @@ class User():
 
   def choose_card(self, is_ante=False, current_turn=True, last_str_played=None):
 
-    #NUMBERS
+    # Acceptable Inputs
     acceptable_inputs = list(range(1, self.hand_size + 1))
-    #ADDITIONAL COMMANDS
     additional = ["", "sc", "s", "sh"]
     for i in additional:
       acceptable_inputs.append(i)
 
-    # Reprints will be for sorting commands
+    # Reprints for sorting commands
     reprint_necessary = True
     while reprint_necessary:
-      clear()
-      print(f"GAMBIT {gambit_number}")
-      print_board()
-      if not is_ante:
-        print_round_events()
+      full_board()
       
       if is_ante:
         print("--------------- PLAYER ANTE ----------------")
       else: 
         print("--------------- PLAYER TURN ---------------")
+      
+      # Previous STR
       if last_str_played:
         print(f"Previously played card was STR {last_str_played}")
-      print("YOUR HAND:")
-      
       # List Cards
+      print("YOUR HAND:")
       for i, card in enumerate(self.hand, 1):
         print(f"  {i}. {card[0]}")
+      # Commands
       print("CMD: s, sc, sh")
       
       returned_input = None
@@ -142,6 +144,7 @@ class User():
         chosen_card = None
         returned_input = input(f"Choose a card (1-{self.hand_size}): ")
         try:
+          # If acceptable integer: card chosen
           returned_input = int(returned_input)
           if returned_input in acceptable_inputs:
             chosen_card = self.hand[returned_input - 1]
@@ -150,24 +153,23 @@ class User():
             print(f"Please enter a number between 1 and {self.hand_size}.")
             returned_input = None
         except ValueError:
-          # CHECK ADDITIONAL FUNCTIONS
+          # If NOT a number
           if returned_input in acceptable_inputs:
-            # If ENTER
+            # ENTER
             if returned_input == "":
-              # Find lowest str card
               chosen_card = self.find_lowest_str()
               reprint_necessary = False
+            # S
             elif returned_input == "s":
-              # Changing reverse changes order
               self.hand.sort(key=lambda card: card[1], reverse = True)
               reprint_necessary = True
-              # EXIT to reprint
               break
+            # SC
             elif returned_input == "sc":
               self.hand.sort(key=lambda card: card[0].split()[0])
               reprint_necessary = True
-              # EXIT to reprint
               break
+            # SH
             elif returned_input == "sh":
               random.shuffle(self.hand)
               reprint_necessary = True
@@ -185,12 +187,13 @@ class User():
     return [self, ante_card]
   
   def main_turn(self,last_str_played=None):
-    # Print Hand
+    # Choose Card
     card_to_play = self.choose_card(False, True, last_str_played)
+    # Power Activates?
     if last_str_played != None:
       if card_to_play[1] >= last_str_played:
         power_activates = True
-        print("This totally cool and rad power would have activated but I haven't really felt like coding it yet so it still doesn't. Tough.")
+        round_events.append("This totally cool and rad power would have activated but I haven't really felt like coding it yet so it still doesn't. Tough.")
         #card.call_effect
     self.flight.append(card_to_play)
     self.hand.remove(card_to_play)
@@ -293,15 +296,6 @@ def check_reshuffle():
     discard_pile = []
     shuffle_deck()
 
-def print_board(round_front_runner=None):
-  global stakes, round_leader, ante_pile
-  print("--------------- TABLE VIEW ---------------")
-  print(f"Stakes: {stakes}")
-  reformatted_ante = [value[0] for value in ante_pile]
-  print(f"Ante: {", ".join(reformatted_ante)}")
-  for player in player_list:
-    player.print_status(is_round_front_runner=(player == round_front_runner))
-
 def ante_phase():
   global stakes, round_leader, ante_pile, player_count
   
@@ -385,21 +379,24 @@ def ante_phase():
     
   return first_player, highest_str_value
 
-def proceed():
-    input("-->")
+def proceed(clean_out=False):
+  input("-->")
+  if clean_out:
     # Move cursor up one line, then clear that line
     sys.stdout.write("\033[1A\033[2K")
-    #sys.stdout.flush()
+    sys.stdout.flush()
 
 def start_gambit():
-  global round_leader, gambit_number, player_list, last_str_played, round_events
+  global round_leader, gambit_number, player_list, last_str_played, round_events, round_front_runner
   
   gambit_number += 1
   clear()
   print(f"START GAMBIT {gambit_number}")
-  proceed()
+  proceed(False)
   clear()
   
+  round_events = []
+
   # Players Draw 2 Cards
   if gambit_number > 1:
     for player in player_list:
@@ -419,49 +416,71 @@ def start_gambit():
     leader_index = player_list.index(round_leader)
     ordered_players = player_list[leader_index:] + player_list[:leader_index]
   
+    # Round Variables
     last_str_played = [None]
     round_events = []
     cards_played_this_round = []
 
     # Each player takes a turn
     for player in ordered_players:
+      # Return played card
       played_card = player.main_turn(last_str_played[-1])
+      
+      # update Last Strength played
       last_str_played.append(played_card[1])
+      # Update cards played in round
       cards_played_this_round.append((player, played_card))
       
       # Recalculate Front runner after each play
       strength_values = [c[1] for _, c in cards_played_this_round]
       strength_counts = Counter(strength_values)
       untied_values = [v for v, count in strength_counts.items() if count == 1]
+      # If at least one isn't tied
       if untied_values:
+        # Find highest
         highest_untied = max(untied_values)
+        # Find Player
         round_front_runner = next(p for p, c in cards_played_this_round if c[1] == highest_untied)
       else:
-        round_front_runner = None # all tied
+        # All are tied with at least one other
+        round_front_runner = None
 
-      in_round_print(round_front_runner)
+      # Print round events, having updated
+      # the Flight and Front Runner color.
+      # Wait for a PROCEED before running
+      # next player's turn
     
-    # Round leader found by highest untied card value
+      full_board(round_front_runner)
+      proceed()
+    
+
+    # Round leader = Front_runner or the 
+    # previous leader
     round_leader = round_front_runner if round_front_runner else round_leader
-    print_board(round_front_runner)
 
-def in_round_print(round_front_runner=None):
+def full_board(front_runner=None):
   clear()
+  
+  # GAMBIT
   print(f"GAMBIT {gambit_number}")
-  print_board(round_front_runner)
-  #print("--------------- ROUND EVENTS ---------------")
-  print_round_events()
-  proceed()
-
-def print_round_events():
-  global round_events
+  
+  # TABLE VIEW
+  print("--------------- TABLE VIEW ---------------")
+  print(f"Stakes: {stakes}")
+  reformatted_ante = [value[0] for value in ante_pile]
+  print(f"Ante: {", ".join(reformatted_ante)}")
+  for player in player_list:
+    # pass through front_runner True/False
+    lead_status = (player == front_runner)
+    player.print_status(lead_status)
+  
+  # ROUND EVENTS
   print("--------------- ROUND EVENTS --------------")
   if len(round_events) == 0:
     print("")
   else:
-    for i in round_events:
-      print(i)
-      proceed()
+    for event in round_events:
+      print(event)
 
 # --------------------------------------
 # --------------------------------------
