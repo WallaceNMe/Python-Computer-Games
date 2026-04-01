@@ -4,8 +4,8 @@ from collections import Counter
 clear = lambda: os.system('clear')
 
 
-# Add a print that says (cards were tied so this player is the round leader)
-# End gambit functionality - Reset Var and winner
+# Finished small cleanup details with printing and POWER ACTIVATES. Continue with game progression and win condition. 
+# 
 
 # Later
 # Remove enter for player choice auto select
@@ -68,31 +68,29 @@ class User():
     self.flight = []
     self.cards_played_this_gambit = []
 
-  def __repr__(self):
-    return self.name
+  def __repr__(self): return self.name
 
   def draw(self, num):
-    print(f"{self.name} draws {num} card(s)")
+    round_events.append(f"{self.name} draws {num} card(s)")
     for i in range(num):
       new_card = draw_pile.pop()
       self.hand.append(new_card)
       check_reshuffle()
       print(f"You have drawn: {new_card[0]}{RESET}")    
 
-  def receive_gold(self, amount):
-    self.gold += amount
+  def receive_gold(self, amount): self.gold += amount
 
   def pay_gold(self, amount, to_player=None):
     self.gold -= amount
     if to_player:
       to_player.receive_gold(amount)
 
-  def print_status(self, is_lead=False):
+  def print_status(self, is_front_runner=False):
       # Previous Leader
       if self == round_leader:
         name_display = f"{GRAY_BG}{self}{RESET}"
       # Favored Leader
-      elif is_lead:
+      elif is_front_runner:
         name_display = f"{BRIGHT_GREEN_BG}{self}{RESET}"
       # Regular
       else:
@@ -191,9 +189,9 @@ class User():
     card_to_play = self.choose_card(False, True, last_str_played)
     # Power Activates?
     if last_str_played != None:
-      if card_to_play[1] >= last_str_played:
+      if card_to_play[1] <= last_str_played:
         power_activates = True
-        round_events.append("This totally cool and rad power would have activated but I haven't really felt like coding it yet so it still doesn't. Tough.")
+        round_events.append(f"{self} POWER ACTIVATES")
         #card.call_effect
     self.flight.append(card_to_play)
     self.hand.remove(card_to_play)
@@ -211,8 +209,7 @@ class Player():
     self.flight = []
     self.cards_played_this_gambit = []
 
-  def __repr__(self):
-    return self.name
+  def __repr__(self): return self.name
 
   def draw(self, num):
     round_events.append(f"{self} Draws {num} card(s)")
@@ -268,16 +265,21 @@ class Player():
 
     # plays strongest cards
     # Determine strongest
-    self.strongest_card = self.hand[0]
-    for item in self.hand:
-      if item[1] > self.strongest_card[1]:
-        self.strongest_card = item
+    strongest_card = self.hand[0]
+    for card in self.hand:
+      if card[1] > strongest_card[1]:
+        strongest_card = card
     # Add to flight, remove from hand
-    self.card_to_play = self.strongest_card
-    self.flight.append(self.card_to_play)
-    self.hand.remove(self.card_to_play)
-    round_events.append(f"{self} plays {self.card_to_play[0]}")
-    return self.card_to_play
+    card_to_play = strongest_card
+    self.flight.append(card_to_play)
+    self.hand.remove(card_to_play)
+    
+    round_events.append(f"{self} plays {card_to_play[0]}")
+    if last_str_played:
+      if card_to_play[1] <= last_str_played:
+        round_events.append(f"{self} POWER ACTIVATES")
+    
+    return card_to_play
 
 # --------------------------------------
 # --------------------------------------
@@ -387,15 +389,27 @@ def proceed(clean_out=False):
     sys.stdout.flush()
 
 def start_gambit():
-  global round_leader, gambit_number, player_list, last_str_played, round_events, round_front_runner
+  global round_leader, gambit_number, player_list, last_str_played, round_events, round_front_runner, ante_pile, discard_pile, stakes, current_round
   
   gambit_number += 1
+  current_round = 0
   clear()
   print(f"START GAMBIT {gambit_number}")
-  proceed(False)
+  proceed()
   clear()
   
+  # Clear Round Events
   round_events = []
+
+  # Reset Stakes, Ante, and Flight
+  stakes = 0
+  if ante_pile:
+    discard_pile = discard_pile + ante_pile
+    ante_pile = []
+  for player in player_list:
+    if player.flight:
+      discard_pile = discard_pile + player.flight
+      player.flight = []
 
   # Players Draw 2 Cards
   if gambit_number > 1:
@@ -412,6 +426,7 @@ def start_gambit():
   highest_card_so_far = None
   rounds = [1, 2, 3]
   for i in rounds:
+    current_round += 1
     # Define Round Leader turn progression
     leader_index = player_list.index(round_leader)
     ordered_players = player_list[leader_index:] + player_list[:leader_index]
@@ -449,7 +464,7 @@ def start_gambit():
       # the Flight and Front Runner color.
       # Wait for a PROCEED before running
       # next player's turn
-    
+     
       full_board(round_front_runner)
       proceed()
     
@@ -475,7 +490,7 @@ def full_board(front_runner=None):
     player.print_status(lead_status)
   
   # ROUND EVENTS
-  print("--------------- ROUND EVENTS --------------")
+  print(f"--------------- ROUND {current_round} EVENTS --------------")
   if len(round_events) == 0:
     print("")
   else:
@@ -552,6 +567,7 @@ rounds = [1, 2, 3]
 winner = None
 text_log = []
 round_events = []
+current_round = 0
 
 # ---------- Start Game ----------
 while not winner:
