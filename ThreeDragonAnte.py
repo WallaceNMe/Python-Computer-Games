@@ -3,17 +3,18 @@ from variables import name_list, deck_list
 from collections import Counter
 clear = lambda: os.system('clear')
 
-
-# Finished small cleanup details with printing and POWER ACTIVATES. Continue with game progression and win condition. 
-# 
+# Ante error with all anties tied.
+# Check when players must buy cards.
 
 # Later
+# -----
 # Remove enter for player choice auto select
+# Remove draw 3 cards feature.
+
 # Compile a README or game manual that prints at the start of the game. Include choose card commands
+# Draw() prints "You have drawn X". Is that ok for round events/progression.
 # Computers that will steal cards will take the last or first card in the player's hand to try and get a high card. Players can shuffle their hands before choosing which card to give up to avoid this. 
 
-# COMMANDS
-# 
 
 GREEN_BG = '\033[42m\033[30m\033[1m'
 YELLOW_BG = '\033[43m\033[30m\033[1m'
@@ -71,7 +72,10 @@ class User():
   def __repr__(self): return self.name
 
   def draw(self, num):
-    round_events.append(f"{self.name} draws {num} card(s)")
+    if num == 1:
+      round_events.append(f"{self} draws {num} card")
+    elif num > 1:
+      round_events.append(f"{self} draws {num} cards")
     for i in range(num):
       new_card = draw_pile.pop()
       self.hand.append(new_card)
@@ -103,11 +107,18 @@ class User():
       print(f"  Flight - {', '.join(flight_reformatted)}")
 
   def find_lowest_str(self):
-    self.lowest_str_card = self.hand[0]
+    lowest_str_card = self.hand[0]
     for i in range(len(self.hand)):
-      if self.hand[i][1] < self.lowest_str_card[1]:
-        self.lowest_str_card = self.hand[i]
-    return self.lowest_str_card
+      if self.hand[i][1] < lowest_str_card[1]:
+        lowest_str_card = self.hand[i]
+    return lowest_str_card
+
+  def find_highest_str(self):
+    highest_str_card = self.hand[0]
+    for i in range(len(self.hand)):
+      if self.hand[i][1] > highest_str_card[1]:
+        highest_str_card = self.hand[i]
+    return highest_str_card
 
   def choose_card(self, is_ante=False, current_turn=True, last_str_played=None):
 
@@ -129,7 +140,7 @@ class User():
       
       # Previous STR
       if last_str_played:
-        print(f"Previously played card was STR {last_str_played}")
+        print(f"{GRAY_BG}Last card was STR {last_str_played}{RESET}")
       # List Cards
       print("YOUR HAND:")
       for i, card in enumerate(self.hand, 1):
@@ -155,7 +166,10 @@ class User():
           if returned_input in acceptable_inputs:
             # ENTER
             if returned_input == "":
-              chosen_card = self.find_lowest_str()
+              if is_ante:
+                chosen_card = self.find_lowest_str()
+              elif current_turn:
+                chosen_card = self.find_highest_str()
               reprint_necessary = False
             # S
             elif returned_input == "s":
@@ -184,19 +198,25 @@ class User():
     self.hand.remove(ante_card)
     return [self, ante_card]
   
-  def main_turn(self,last_str_played=None):
+  def main_turn(self,last_str_played):
     # Choose Card
-    card_to_play = self.choose_card(False, True, last_str_played)
+    card = self.choose_card(False, True, last_str_played)
+    round_events.append(f"{self} Plays {card[0]}")
+
     # Power Activates?
-    if last_str_played != None:
-      if card_to_play[1] <= last_str_played:
+    if last_str_played:
+      if card[1] <= last_str_played:
         power_activates = True
         round_events.append(f"{self} POWER ACTIVATES")
-        #card.call_effect
-    self.flight.append(card_to_play)
-    self.hand.remove(card_to_play)
-    round_events.append(f"{self} Plays {card_to_play[0]}")
-    return card_to_play
+      else:
+        power_activates = False
+    else:
+      power_activates = True
+      round_events.append(f"{self} POWER ACTIVATES")
+    
+    self.flight.append(card)
+    self.hand.remove(card)
+    return card
 
 class Player():
 
@@ -212,7 +232,10 @@ class Player():
   def __repr__(self): return self.name
 
   def draw(self, num):
-    round_events.append(f"{self} Draws {num} card(s)")
+    if num == 1:
+      round_events.append(f"{self} draws {num} card")
+    elif num > 1:
+      round_events.append(f"{self} draws {num} cards")
     for i in range(num):
       new_card = draw_pile.pop()
       self.hand.append(new_card)
@@ -225,7 +248,7 @@ class Player():
     #   print(RED_BG + "CARD NUM PRINT ERROR" + RESEt)
 
   def receive_gold(self, amount):
-    round_events.append(f"{Self} received {amount}GP")
+    round_events.append(f"{self} received {amount}GP")
     self.gold += amount
 
   def pay_gold(self, amount, to_player=None):
@@ -275,9 +298,16 @@ class Player():
     self.hand.remove(card_to_play)
     
     round_events.append(f"{self} plays {card_to_play[0]}")
+
     if last_str_played:
       if card_to_play[1] <= last_str_played:
+        power_activates = True
         round_events.append(f"{self} POWER ACTIVATES")
+      else:
+        power_activates = False
+    else:
+      power_activates = True
+      round_events.append(f"{self} POWER ACTIVATES")
     
     return card_to_play
 
@@ -291,7 +321,7 @@ def shuffle_deck():
   print("Deck was shuffled.")
 
 def check_reshuffle():
-  global draw_pile
+  global draw_pile, discard_pile
   if len(draw_pile) == 0:
     # Copy adds insurance
     draw_pile = discard_pile.copy()
@@ -304,16 +334,13 @@ def ante_phase():
   acceptable_ante = False
   while not acceptable_ante:
     
-    # Clear/Print for player ante
-    clear()
-    #print("--------------- PLAYER ANTE ---------------")
-
     # Retrieve Ante Cards
     returned_list = []
     for i in range(len(player_list)):
       # Returns [Player Class, [Card, STR]]
       returned_list.append(player_list[i].ante_card())
     
+    # ANTE PHASE appears in its own section
     clear()
 
     # Print ante results
@@ -321,9 +348,6 @@ def ante_phase():
     # Print Player Antes
     for i in range(len(returned_list)):
       print(f"{returned_list[i][0]} antes: {returned_list[i][1][0]}")
-    
-    #time_to_sleep = 1 + (player_count / 2)
-    #time.sleep(time_to_sleep)
 
     # ----- Check All Tied (Re-ante) -----
 
@@ -338,10 +362,11 @@ def ante_phase():
         discard_pile.append(return_value[1])
         # Draw 1
         return_value[0].draw(1)
+      proceed()
     else: # Move on
       acceptable_ante = True
   
-  # ----- Resume Ante -----
+  # ----- Acceptable Ante -----
 
   # Add cards to ante_pile
   ante_pile = [return_value[1] for return_value in returned_list]
@@ -388,8 +413,8 @@ def proceed(clean_out=False):
     sys.stdout.write("\033[1A\033[2K")
     sys.stdout.flush()
 
-def start_gambit():
-  global round_leader, gambit_number, player_list, last_str_played, round_events, round_front_runner, ante_pile, discard_pile, stakes, current_round
+def gambit():
+  global round_leader, gambit_number, player_list, last_str_played, round_events, round_front_runner, ante_pile, discard_pile, stakes, current_round, loser
   
   gambit_number += 1
   current_round = 0
@@ -414,7 +439,7 @@ def start_gambit():
   # Players Draw 2 Cards
   if gambit_number > 1:
     for player in player_list:
-      player.draw(2)
+      player.draw(4)
 
   # ANTE PHASE
   round_leader, ante_gold = ante_phase()
@@ -422,7 +447,8 @@ def start_gambit():
   proceed()
   #clear()
 
-  # THREE ROUNDS
+  # ---------- THREE ROUNDS ----------
+
   highest_card_so_far = None
   rounds = [1, 2, 3]
   for i in rounds:
@@ -466,13 +492,31 @@ def start_gambit():
       # next player's turn
      
       full_board(round_front_runner)
-      proceed()
+      proceed(True)
+
+      if player == ordered_players[-1]:
+        if round_front_runner and i != rounds[-1]:
+          print(f"End Round. {round_front_runner} will start the next round.")
+        elif not round_front_runner and i != rounds[-1]:
+          print(f"End Round. {round_leader} will start the next round.")
+        else:
+          print("End Round.")
+
+        proceed()
     
 
-    # Round leader = Front_runner or the 
-    # previous leader
+    # Round leader = Front_runner or the previous leader
     round_leader = round_front_runner if round_front_runner else round_leader
 
+    # ---------- DETERMINE WINNER ----------
+    if i == rounds[-1]:
+      determine_gambit_winner()
+
+    # ---------- CHECK END GAME ----------
+    for player in player_list:
+      if player.gold <= 0:
+        loser = player
+ 
 def full_board(front_runner=None):
   clear()
   
@@ -496,6 +540,57 @@ def full_board(front_runner=None):
   else:
     for event in round_events:
       print(event)
+
+def determine_gambit_winner():
+  global stakes, round_leader, current_round, round_events
+
+  while True:
+    # Calculate each player's flight total
+    flight_totals = {player: sum(card[1] for card in player.flight) for player in player_list}
+    max_total = max(flight_totals.values())
+    tied_players = [p for p, total in flight_totals.items() if total == max_total]
+
+    full_board()
+    print("--------------- END GAMBIT ---------------")
+    for player in player_list:
+      print(f"{player.name}: Flight Total = {flight_totals[player]}")
+
+    # No Ties
+    if len(tied_players) == 1:
+      gambit_winner = tied_players[0]
+      gambit_winner.receive_gold(stakes)
+      stakes = 0
+      print(f"\n{BRIGHT_GREEN_BG}{gambit_winner} wins the gambit and collects the pot!{RESET}")
+      proceed()
+      return
+
+    # Ties
+    else:
+      # Tiebreaker: tied players each play one more card
+      tied_names = ", ".join(str(p) for p in tied_players)
+      print(f"\n{YELLOW_BG}TIE between: {tied_names} — tiebreaker round!{RESET}")
+      proceed()
+
+      current_round += 1
+      round_events = []
+      last_str_played = [None]
+
+      # Preserve round_leader turn order among tied players
+      if round_leader in tied_players:
+        leader_index = tied_players.index(round_leader)
+        ordered_tied = tied_players[leader_index:] + tied_players[:leader_index]
+      else:
+        ordered_tied = tied_players
+
+      for player in ordered_tied:
+        #if not player.hand:
+          #player.draw(1)
+        played_card = player.main_turn(last_str_played[-1])
+        last_str_played.append(played_card[1])
+        full_board()
+        proceed(True)
+      
+      # Loop back up to re-evaluate flight totals
 
 # --------------------------------------
 # --------------------------------------
@@ -568,9 +663,12 @@ winner = None
 text_log = []
 round_events = []
 current_round = 0
+loser = False
 
 # ---------- Start Game ----------
-while not winner:
-  start_gambit()
+while not loser:
+  gambit()
 
+clear()
+print(f"{loser} has no more gold. Thank you for playing.")
 
