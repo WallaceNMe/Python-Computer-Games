@@ -3,18 +3,21 @@ from variables import name_list, deck_list
 from collections import Counter
 clear = lambda: os.system('clear')
 
-# Ante error with all anties tied.
-# Check when players must buy cards.
+# Buying cards
+# Special Flights
+# No gold in stakes: gambit ends immediately
+# Hand max of 10
+# Power activates for Legendary Dragons
 
 # Later
 # -----
+# Players cannot steal negative into the stakes
 # Remove enter for player choice auto select
 # Remove draw 3 cards feature.
 
 # Compile a README or game manual that prints at the start of the game. Include choose card commands
 # Draw() prints "You have drawn X". Is that ok for round events/progression.
 # Computers that will steal cards will take the last or first card in the player's hand to try and get a high card. Players can shuffle their hands before choosing which card to give up to avoid this. 
-
 
 GREEN_BG = '\033[42m\033[30m\033[1m'
 YELLOW_BG = '\033[43m\033[30m\033[1m'
@@ -50,26 +53,45 @@ for i in range(len(deck_list)):
 
 # Card Lists
 deck_list = refactored_list
-draw_pile = deck_list
+draw_pile = deck_list.copy()
 discard_pile = []
 ante_pile = []
 
 # --------------------------------------
-# --------------------------------------
+# --------------- CLASSES --------------
 # --------------------------------------
 
-#Classes
 class User():
   def __init__(self, player_id, name, hand, starting_gold):
     self.id = player_id
     self.name = name
     self.hand = hand
     self.gold = starting_gold
-    self.hand_size = len(hand)
+    self.hand_size = len(self.hand)
     self.flight = []
-    self.cards_played_this_gambit = []
+    self.debt = 0
 
   def __repr__(self): return self.name
+  def receive_gold(self, amount): self.gold += amount
+
+  def pay_gold(self, amount, to_player=None):
+    self.gold -= amount
+    if to_player:
+      to_player.receive_gold(amount)
+
+  def find_lowest_str(self):
+    lowest_str_card = self.hand[0]
+    for i in range(len(self.hand)):
+      if self.hand[i][1] < lowest_str_card[1]:
+        lowest_str_card = self.hand[i]
+    return lowest_str_card
+
+  def find_highest_str(self):
+    highest_str_card = self.hand[0]
+    for i in range(len(self.hand)):
+      if self.hand[i][1] > highest_str_card[1]:
+        highest_str_card = self.hand[i]
+    return highest_str_card
 
   def draw(self, num):
     if num == 1:
@@ -80,14 +102,7 @@ class User():
       new_card = draw_pile.pop()
       self.hand.append(new_card)
       check_reshuffle()
-      print(f"You have drawn: {new_card[0]}{RESET}")    
-
-  def receive_gold(self, amount): self.gold += amount
-
-  def pay_gold(self, amount, to_player=None):
-    self.gold -= amount
-    if to_player:
-      to_player.receive_gold(amount)
+      round_events.append(f"You have drawn: {new_card[0]}{RESET}")    
 
   def print_status(self, is_front_runner=False):
       # Previous Leader
@@ -105,20 +120,6 @@ class User():
       
       print(f"{name_display}: {self.gold}GP, {self.hand_size} Cards")
       print(f"  Flight - {', '.join(flight_reformatted)}")
-
-  def find_lowest_str(self):
-    lowest_str_card = self.hand[0]
-    for i in range(len(self.hand)):
-      if self.hand[i][1] < lowest_str_card[1]:
-        lowest_str_card = self.hand[i]
-    return lowest_str_card
-
-  def find_highest_str(self):
-    highest_str_card = self.hand[0]
-    for i in range(len(self.hand)):
-      if self.hand[i][1] > highest_str_card[1]:
-        highest_str_card = self.hand[i]
-    return highest_str_card
 
   def choose_card(self, is_ante=False, current_turn=True, last_str_played=None):
 
@@ -225,11 +226,12 @@ class Player():
     self.name = name
     self.hand = hand
     self.gold = starting_gold
-    self.hand_size = len(hand)
+    self.hand_size = len(self.hand)
     self.flight = []
-    self.cards_played_this_gambit = []
+    self.debt = 0
 
   def __repr__(self): return self.name
+  def receive_gold(self, amount): self.gold += amount
 
   def draw(self, num):
     if num == 1:
@@ -240,16 +242,6 @@ class Player():
       new_card = draw_pile.pop()
       self.hand.append(new_card)
       check_reshuffle()
-    # if num == 1:
-    #   print(BLUE_BG_WHITE + f"{self.name} draws {num} card" + RESET)
-    # elif num > 1:
-    #   print(BLUE_BG_WHITE + f"{self.name}  draws {num} cards" + RESET)
-    # else:
-    #   print(RED_BG + "CARD NUM PRINT ERROR" + RESEt)
-
-  def receive_gold(self, amount):
-    round_events.append(f"{self} received {amount}GP")
-    self.gold += amount
 
   def pay_gold(self, amount, to_player=None):
     round_events.append(f"{self} pays {amount}GP")
@@ -271,11 +263,18 @@ class Player():
       print(f"  Flight - {', '.join(flight_reformatted)}")
 
   def find_lowest_str(self):
-    self.lowest_str_card = self.hand[0]
+    lowest_str_card = self.hand[0]
     for i in range(len(self.hand)):
-      if self.hand[i][1] < self.lowest_str_card[1]:
-        self.lowest_str_card = self.hand[i]
-    return self.lowest_str_card
+      if self.hand[i][1] < lowest_str_card[1]:
+        lowest_str_card = self.hand[i]
+    return lowest_str_card
+
+  def find_highest_str(self):
+    strongest_card = self.hand[0]
+    for card in self.hand:
+      if card[1] > strongest_card[1]:
+        strongest_card = card
+    return strongest_card
 
   def ante_card(self):
     #Ante lowest str card
@@ -285,15 +284,8 @@ class Player():
   
   def main_turn(self, last_str_played=None):
     # determine_strategy() function
-
-    # plays strongest cards
-    # Determine strongest
-    strongest_card = self.hand[0]
-    for card in self.hand:
-      if card[1] > strongest_card[1]:
-        strongest_card = card
     # Add to flight, remove from hand
-    card_to_play = strongest_card
+    card_to_play = self.find_highest_str()
     self.flight.append(card_to_play)
     self.hand.remove(card_to_play)
     
@@ -311,11 +303,14 @@ class Player():
     
     return card_to_play
 
-# --------------------------------------
-# --------------------------------------
-# --------------------------------------
+# -------------------------------------
+# ------------- FUNCTIONS -------------
+# -------------------------------------
 
-#Functions
+def check_stakes():
+  if stakes == 0:
+    return False
+
 def shuffle_deck():
   random.shuffle(draw_pile)
   print("Deck was shuffled.")
@@ -329,7 +324,7 @@ def check_reshuffle():
     shuffle_deck()
 
 def ante_phase():
-  global stakes, round_leader, ante_pile, player_count
+  global stakes, round_leader, ante_pile, player_count, round_events
   
   acceptable_ante = False
   while not acceptable_ante:
@@ -337,72 +332,53 @@ def ante_phase():
     # Retrieve Ante Cards
     returned_list = []
     for i in range(len(player_list)):
-      # Returns [Player Class, [Card, STR]]
+      # Returns [Player, [Card, STR]]
       returned_list.append(player_list[i].ante_card())
-    
-    # ANTE PHASE appears in its own section
-    clear()
 
-    # Print ante results
+    # Print ANTE PHASE section
+    clear()
     print("--------------- ANTE PHASE ---------------")
-    # Print Player Antes
     for i in range(len(returned_list)):
       print(f"{returned_list[i][0]} antes: {returned_list[i][1][0]}")
 
-    # ----- Check All Tied (Re-ante) -----
+    # ----- Check Ties -----
 
-    # Get all strength values
+    # Collect strength values
     strength_values = [return_value[1][1] for return_value in returned_list]
     
-    # Check if all cards have the same strength (all tied)
-    if len(set(strength_values)) == 1:
-      print("\n**All ante cards were tied, Each player draws a card and re-antes.**\n")
+    # Count occurrences of each strength value
+    strength_counts = Counter(strength_values)
+    
+    # Collect untied values
+    untied_values = [value for value, count in strength_counts.items() if count == 1]
+
+    # At least 1 untied value = acceptable ante
+    if untied_values:
+      acceptable_ante = True
+    else:
+      print("\nAll ante cards were tied with at least one other card. Each player draws a card and re-antes.\n")
+
+      # Discard / Draw for each player
       for return_value in returned_list:
-        # Discard ante cards
         discard_pile.append(return_value[1])
-        # Draw 1
         return_value[0].draw(1)
       proceed()
-    else: # Move on
-      acceptable_ante = True
   
   # ----- Acceptable Ante -----
 
   # Add cards to ante_pile
   ante_pile = [return_value[1] for return_value in returned_list]
 
-  # Find the highest strength card
+  # Pay to Stakes
   highest_str_value = max(strength_values)
-  highest_str_return = [r for r in returned_list if r[1][1] == highest_str_value][0]
-  
-  # Deduct gold from each player equal to highest_str_value
   for player in player_list:
     player.pay_gold(highest_str_value)
     stakes += highest_str_value
   
   # ----- Determine First Player -----
   
-  # Count occurrences of each strength value
-  strength_counts = Counter(strength_values)
-  
-  # Keep only untied values
-  untied_values = [value for value, count in strength_counts.items() if count == 1]
-  
-  # If an untied card was played
-  if untied_values:
-    # Find the highest untied value
-    highest_untied = max(untied_values)
-    # Find the player who played that card
-    first_player = [r[0] for r in returned_list if r[1][1] == highest_untied][0]
-  else:
-    # All cards are tied with at least one other card - use previous round's leader or default
-    if round_leader:
-        first_player = round_leader
-        print("The previous round leader will start the next gambit.")
-    else:
-        # First round and all tied - random selection
-        print("\n**All cards are tied with at least one other, so the first player will be chosen at random.**")
-        first_player = random.choice(player_list)
+  highest_untied = max(untied_values)
+  first_player = [r[0] for r in returned_list if r[1][1] == highest_untied][0]
     
   return first_player, highest_str_value
 
@@ -545,11 +521,12 @@ def determine_gambit_winner():
   global stakes, round_leader, current_round, round_events
 
   while True:
-    # Calculate each player's flight total
+    # TOtal flights, find max, check ties
     flight_totals = {player: sum(card[1] for card in player.flight) for player in player_list}
     max_total = max(flight_totals.values())
     tied_players = [p for p, total in flight_totals.items() if total == max_total]
 
+    # Print Board and results
     full_board()
     print("--------------- END GAMBIT ---------------")
     for player in player_list:
@@ -561,6 +538,17 @@ def determine_gambit_winner():
       gambit_winner.receive_gold(stakes)
       stakes = 0
       print(f"\n{BRIGHT_GREEN_BG}{gambit_winner} wins the gambit and collects the pot!{RESET}")
+      
+      # Check debt
+      for player in player_list:
+        if player.debt:
+          if player.debt >= player.gold:
+            loser = player
+          else:
+            # Pay debt to the house
+            player.pay_gold(player.debt)
+            print(f"{player} pays {player.debt} gold to the House.")
+
       proceed()
       return
 
@@ -575,21 +563,22 @@ def determine_gambit_winner():
       round_events = []
       last_str_played = [None]
 
-      # Preserve round_leader turn order among tied players
+      # Determine order by round_leader or clockwise
       if round_leader in tied_players:
         leader_index = tied_players.index(round_leader)
         ordered_tied = tied_players[leader_index:] + tied_players[:leader_index]
       else:
         ordered_tied = tied_players
 
+      # Player turns
       for player in ordered_tied:
         #if not player.hand:
           #player.draw(1)
         played_card = player.main_turn(last_str_played[-1])
         last_str_played.append(played_card[1])
         full_board()
-        proceed(True)
-      
+        proceed()
+
       # Loop back up to re-evaluate flight totals
 
 # --------------------------------------
@@ -664,6 +653,7 @@ text_log = []
 round_events = []
 current_round = 0
 loser = False
+round_front_runner = None
 
 # ---------- Start Game ----------
 while not loser:
