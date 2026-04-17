@@ -3,18 +3,20 @@ from variables import name_list, deck_list
 from collections import Counter
 clear = lambda: os.system('clear')
 
-# Buying cards
+# Review player.debt tracking system
+# player.buy_cards() - Immediately if no cards, or at start of turn if only 1
 # Special Flights
-# No gold in stakes: gambit ends immediately
 # Hand max of 10
 # Power activates for Legendary Dragons
 
 # Later
 # -----
+# No gold in stakes: gambit ends immediately
 # Players cannot steal negative into the stakes
 # Remove enter for player choice auto select
-# Remove draw 3 cards feature.
+# Remove draw 3 cards feature in gambit.
 
+# Check all places where draw_pile.pop() is called. Make sure there is a check_reshuffle() after it. 
 # Compile a README or game manual that prints at the start of the game. Include choose card commands
 # Draw() prints "You have drawn X". Is that ok for round events/progression.
 # Computers that will steal cards will take the last or first card in the player's hand to try and get a high card. Players can shuffle their hands before choosing which card to give up to avoid this. 
@@ -75,9 +77,25 @@ class User():
   def receive_gold(self, amount): self.gold += amount
 
   def pay_gold(self, amount, to_player=None):
-    self.gold -= amount
-    if to_player:
-      to_player.receive_gold(amount)
+    if self.gold >= amount:
+        self.gold -= amount
+        if to_player:
+            to_player.receive_gold(amount)
+            round_events.append(f"{self} pays {amount} gold to {to_player}")
+        else:
+          round_events.append(f"{self} pays {amount} gold")
+    else:
+        # Pay what you can, track the rest as debt
+        shortfall = amount - self.gold
+        actually_paid = self.gold
+        self.gold = 0
+        self.debt += shortfall
+        if to_player:
+            to_player.receive_gold(actually_paid)
+            round_events.append(f"{self} pays {actually_paid} gold to {to_player}")
+        else:
+          round_events.append(f"{self} pays {actually_paid} gold")
+        round_events.append(f"{self} has exhausted their hoard.")
 
   def find_lowest_str(self):
     lowest_str_card = self.hand[0]
@@ -104,6 +122,23 @@ class User():
       check_reshuffle()
       round_events.append(f"You have drawn: {new_card[0]}{RESET}")    
 
+  def buy_cards(self):
+    if self.hand_size == 1:
+      round_events.append(f"{self} only has 1 card left in hand, and must buy cards.")
+    elif self.hand_size == 0:
+      reound_events.append(f"{self} has no cards left in hand and must immediately buy cards.")
+    price_card = draw_pile.pop()
+    round_events.append(f"{self} has drawn: {price_card} to determine the price of the cards.")
+    check_reshuffle()
+    payment = price_card[1]
+    self.pay_gold(payment)
+    num = 0
+    while self.hand_size < 4:
+      self.draw(1)
+      check_reshuffle()
+      num += 1
+    round_events.append(f"{self} buys {num} cards for {payment}GP")
+
   def print_status(self, is_front_runner=False):
       # Previous Leader
       if self == round_leader:
@@ -118,7 +153,14 @@ class User():
       # reformat flight for printing
       flight_reformatted = [value[0] for value in self.flight]
       
-      print(f"{name_display}: {self.gold}GP, {self.hand_size} Cards")
+      #Debt
+      gold_or_debt = None
+      if self.gold:
+        gold_or_debt = f"{self.gold}GP"
+      else:
+        gold_or_debt = f"{RED_BG}{self.debt}GP DEBT{RESET}"
+
+      print(f"{name_display}: {gold_or_debt}, {self.hand_size} Cards")
       print(f"  Flight - {', '.join(flight_reformatted)}")
 
   def choose_card(self, is_ante=False, current_turn=True, last_str_played=None):
@@ -243,23 +285,63 @@ class Player():
       self.hand.append(new_card)
       check_reshuffle()
 
-  def pay_gold(self, amount, to_player=None):
-    round_events.append(f"{self} pays {amount}GP")
-    self.gold -= amount
-    if to_player:
-      round_events.append(f"{self.name} pays {amount} gold to {to_player}.")
-      to_player.receive_gold(amount)
+  def buy_cards(self):
+    if self.hand_size == 1:
+      round_events.append(f"{self} only has 1 card left in hand, and must buy cards.")
+    elif self.hand_size == 0:
+      reound_events.append(f"{self} has no cards left in hand and must immediately buy cards.")
+    price_card = draw_pile.pop()
+    round_events.append(f"{self} has drawn: {price_card} to determine the price of the cards.")
+    check_reshuffle()
+    payment = price_card[1]
+    self.pay_gold(payment)
+    num = 0
+    while self.hand_size < 4:
+      self.draw(1)
+      check_reshuffle()
+      num += 1
+    round_events.append(f"{self} buys {num} cards for {payment}GP")
 
-  def print_status(self, is_round_front_runner=False):
+  def pay_gold(self, amount, to_player=None):
+    if self.gold >= amount:
+        self.gold -= amount
+        if to_player:
+            to_player.receive_gold(amount)
+            round_events.append(f"{self} pays {amount} gold to {to_player}")
+        else:
+          round_events.append(f"{self} pays {amount} gold")
+    else:
+        # Pay what you can, track the rest as debt
+        shortfall = amount - self.gold
+        actually_paid = self.gold
+        self.gold = 0
+        self.debt += shortfall
+        if to_player:
+            to_player.receive_gold(actually_paid)
+            round_events.append(f"{self} pays {actually_paid} gold to {to_player}")
+        else:
+          round_events.append(f"{self} pays {actually_paid} gold")
+        round_events.append(f"{self} has exhausted their hoard.")
+
+  def print_status(self, is_front_runner=False):
+      # Previous Leader
       if self == round_leader:
         name_display = f"{GRAY_BG}{self}{RESET}"
-      elif is_round_front_runner:
+      # Favored Leader
+      elif is_front_runner:
         name_display = f"{BRIGHT_GREEN_BG}{self}{RESET}"
+      # Regular
       else:
         name_display = f"{self}"
       # reformat flight for printing
       flight_reformatted = [value[0] for value in self.flight]
-      print(f"{name_display}: {self.gold}GP, {self.hand_size} Cards")
+      #Debt
+      gold_or_debt = None
+      if self.gold:
+        gold_or_debt = f"{self.gold}GP"
+      else:
+        gold_or_debt = f"{RED_BG}{self.debt}GP DEBT{RESET}"
+      print(f"{name_display}: {gold_or_debt}, {self.hand_size} Cards")
       print(f"  Flight - {', '.join(flight_reformatted)}")
 
   def find_lowest_str(self):
@@ -440,6 +522,10 @@ def gambit():
 
     # Each player takes a turn
     for player in ordered_players:
+      # Buy Cards
+      if player.hand_size <= 1:
+        player.buy_cards()
+
       # Return played card
       played_card = player.main_turn(last_str_played[-1])
       
