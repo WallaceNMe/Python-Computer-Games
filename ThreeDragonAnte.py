@@ -1,8 +1,9 @@
 import random, time, os, sys
-from variables import name_list, deck_list
+from variables import name_list, deck_list, traditional_mortals_list
 from collections import Counter
 clear = lambda: os.system('clear')
 
+# Changed card format. Fix errors.
 # Review player.debt tracking system
 # player.buy_cards() - Immediately if no cards, or at start of turn if only 1
 # Special Flights
@@ -25,15 +26,11 @@ GREEN_BG = '\033[42m\033[30m\033[1m'
 YELLOW_BG = '\033[43m\033[30m\033[1m'
 GRAY_BG = '\033[100m\033[37m\033[1m'
 RESET = '\033[0m'
-
-# Background colors with black text and bold
 RED_BG = '\033[41m\033[30m\033[1m'
 BLUE_BG = '\033[44m\033[30m\033[1m'
 MAGENTA_BG = '\033[45m\033[30m\033[1m'
 CYAN_BG = '\033[46m\033[30m\033[1m'
 WHITE_BG = '\033[47m\033[30m\033[1m'
-
-# Bright background colors with black text and bold
 BRIGHT_RED_BG = '\033[101m\033[30m\033[1m'
 BRIGHT_GREEN_BG = '\033[102m\033[30m\033[1m'
 BRIGHT_YELLOW_BG = '\033[103m\033[30m\033[1m'
@@ -41,20 +38,20 @@ BRIGHT_BLUE_BG = '\033[104m\033[30m\033[1m'
 BRIGHT_MAGENTA_BG = '\033[105m\033[30m\033[1m'
 BRIGHT_CYAN_BG = '\033[106m\033[30m\033[1m'
 BRIGHT_WHITE_BG = '\033[107m\033[30m\033[1m'
-
-# If you need white text instead of black on darker backgrounds
 BLUE_BG_WHITE = '\033[44m\033[37m\033[1m'
 RED_BG_WHITE = '\033[41m\033[37m\033[1m'
 MAGENTA_BG_WHITE = '\033[45m\033[37m\033[1m'
 
-# Create basic Deck list for phase one of code writing
-refactored_list = []
-for i in range(len(deck_list)):
-  card_strength = int(deck_list[i][-2:].strip())
-  refactored_list.append([deck_list[i], card_strength])
+# Card format: ["Green 7", 7, "Evil", "Card effect"]
+
+# Select Mortals
+mortals_list = traditional_mortals_list
+
+# Add Mortals to dragons
+for card in mortals_list:
+  deck_list.append(card)
 
 # Card Lists
-deck_list = refactored_list
 draw_pile = deck_list.copy()
 discard_pile = []
 ante_pile = []
@@ -114,30 +111,36 @@ class User():
   def draw(self, num):
     if num == 1:
       round_events.append(f"{self} draws {num} card")
-    elif num > 1:
-      round_events.append(f"{self} draws {num} cards")
-    for i in range(num):
       new_card = draw_pile.pop()
       self.hand.append(new_card)
       check_reshuffle()
-      round_events.append(f"You have drawn: {new_card[0]}{RESET}")    
+      round_events.append(f"You have drawn: {new_card[0]}")
+    elif num > 1:
+      round_events.append(f"{self} draws {num} cards")
+      drawn_cards = []
+      for i in range(num):
+        new_card = draw_pile.pop()
+        check_reshuffle()
+        drawn_cards.append(new_card)
+        self.hand.append(new_card)
+      drawn_reformatted = [value[0] for value in drawn_cards]
+      round_events.append(f"You have drawn: {', '.join(drawn_reformatted)}")
+          
 
   def buy_cards(self):
     if self.hand_size == 1:
       round_events.append(f"{self} only has 1 card left in hand, and must buy cards.")
     elif self.hand_size == 0:
       reound_events.append(f"{self} has no cards left in hand and must immediately buy cards.")
+    
     price_card = draw_pile.pop()
-    round_events.append(f"{self} has drawn: {price_card} to determine the price of the cards.")
-    check_reshuffle()
     payment = price_card[1]
+    difference = 4 - self.hand_size
+    round_events.append(f"{self} has drawn: {price_card} and will pay {payment}GP to buy {difference} cards.")
+
     self.pay_gold(payment)
-    num = 0
-    while self.hand_size < 4:
-      self.draw(1)
-      check_reshuffle()
-      num += 1
-    round_events.append(f"{self} buys {num} cards for {payment}GP")
+    stakes += payment
+    self.draw(difference)
 
   def print_status(self, is_front_runner=False):
       # Previous Leader
@@ -290,17 +293,15 @@ class Player():
       round_events.append(f"{self} only has 1 card left in hand, and must buy cards.")
     elif self.hand_size == 0:
       reound_events.append(f"{self} has no cards left in hand and must immediately buy cards.")
+    
     price_card = draw_pile.pop()
-    round_events.append(f"{self} has drawn: {price_card} to determine the price of the cards.")
-    check_reshuffle()
     payment = price_card[1]
+    difference = 4 - self.hand_size
+    round_events.append(f"{self} has drawn: {price_card} and will pay {payment}GP to buy {difference} cards.")
+
     self.pay_gold(payment)
-    num = 0
-    while self.hand_size < 4:
-      self.draw(1)
-      check_reshuffle()
-      num += 1
-    round_events.append(f"{self} buys {num} cards for {payment}GP")
+    stakes += payment
+    self.draw(difference)
 
   def pay_gold(self, amount, to_player=None):
     if self.gold >= amount:
@@ -603,6 +604,12 @@ def full_board(front_runner=None):
     for event in round_events:
       print(event)
 
+def check_special_flights():
+  # Color = each opponent pays gold to you equal to your second strongest dragon
+  # Strength = steal that much gold from the stakes and take two ante cards.
+  global stakes
+  
+
 def determine_gambit_winner():
   global stakes, round_leader, current_round, round_events
 
@@ -623,7 +630,7 @@ def determine_gambit_winner():
       gambit_winner = tied_players[0]
       gambit_winner.receive_gold(stakes)
       stakes = 0
-      print(f"\n{BRIGHT_GREEN_BG}{gambit_winner} wins the gambit and collects the pot!{RESET}")
+      print(f"\n{gambit_winner} wins the gambit and collects the pot!")
       
       # Check debt
       for player in player_list:
