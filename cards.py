@@ -1,0 +1,186 @@
+mortals_list = [
+  ["The Archmage 9", 9, "Mortal", "All cards you play later this gambit trigger their powers."],
+  ["The Dragonrider 6", 6, "Mortal", "When this gambit is scored, the strength of this card equals the strength of the weakest dragon in your flight, not this card's printed strength."], 
+  ["The Dragonslayer 8", 8, "Mortal", "Discard a weaker dragon from any flight."], 
+  ["The Druid 6", 6, "Mortal", "The player with the weakest flight wins the gambit instead of the player with the strongest flight."], 
+  ["The Fool 3", 3, "Mortal", "Draw a card for each opponent with a flight stronger than yours."], 
+  ["The Illusionist 4", 4, "Mortal", "You can swap this card with a ortal in an opponent's flight. If you do, your new mortal triggers its power regardless of its strength."], 
+  ["The Kobold 2", 2, "Mortal", "Discard as many cards as you wish from your hand. Then draw that many cards."], 
+  ["The Merchant Prince 5", 5, "Mortal", "Until the end of this gambit, any gold players would put into the stakes to buy new cards goes to you instead of into the stakes."], 
+  ["The Priest 5", 5, "Mortal", "The winner of the gambit splits the stakes with the player to their left."], 
+  ["The Princess 4", 4, "Mortal", "The power of each good dragon in your flight triggers."], 
+  ["The Prophet 10", 10, "Mortal", "You can reveal a dragon in your hand and trigger its power as if the Prophet had triggered the power."], 
+  ["The Queen 7", 7, "Mortal", "Each opponent with both good and evil dragons in the same flight pays you 5 gold, and you take a random card from that player's hand."], 
+  ["The Sorcerer 8", 8, "Mortal", "Reveal the top three cards of the deck. Discard this card and replace it with one of the revealed cards. That card's power triggers. Put the other two revealed cards into the ante."], 
+  ["The Thief 7", 7, "Mortal", "Steal 7 gold from the stakes."], 
+  ["The Wyrmpriest 5", 5, "Mortal", "For the rest of the gambit, this card counts as any color for completing a color flight."]
+]
+
+special_dragons_list = [
+  ["Bahamut 13", 13, "Good", "Dragon god--As long as you have Bahamut and an evil dragon in your flight, you can't win the gambit. Power: Each other player with both good and evil dragons in the same flight pays you 10 gold."],
+  ["Black Raider 8", 8, "Evil", "Steal 1 gold from the stakes, then take 2 gold from the opponent to your left, 3 gold from the opponent to their left, and so on until you have taken gold from everyone."],
+  ["Blue Overlord 10", 10, "Evil", "Choose one: Each opponent gives you 2 gold OR each opponent adds 2 gold to the stakes for each card in your flight."], 
+  ["Brass Sultan 8", 8, "Good", "The opponents to your left and right each choose either to give you a stronger good dragon from their hand or to pay you 5 gold."],
+  ["Bronze Warlord 10", 10, "Good", "Take the two weakest cards from the ante. Then if you do not win the gambit after the third round, play a fourth round."],
+  ["Chromatic Wyrmling 1", 1, "Evil", "You may discard this card and replace it with an evil dragon from your hand. The new card's power triggers regardless of its strength."],
+  ["Copper Trickster 9", 9, "Good", "Discard a different card in your flight and replace it with the top card of the deck. You can trigger the new card's power if you wish."],
+  ["Dracolich 10", 10, "Evil", "When the gambit is scored, you get +2 Strength for each dragon in your flight."], 
+  ["Gold Monarch 12", 12, "Good", "Draw a card for each good dragon in your flight. Then if you win this gambit, gift each opponent 3 gold."],
+  ["Green Schemer 5", 5, "Evil", "The opponents to your left and right each choose either to give you a weaker evil dragon from their hand or to pay you 5 gold."],
+  ["Metallic Wyrmling 1", 1, "Good", "You may discard this card and replace it with a good dragon from your hand. The new card's power triggers regardless of its strength."], 
+  ["Red Destroyer 11", 11, "Evil", "The opponent with the strongest flight pays you 10 g0ld. Take a random card from that player's hand."],
+  ["Silver Seer 11", 11, "Good", "Each player with at least one good dragon in their flight draws a card, then you look at the top three cards of the deck, choose one, and discard the others. "],
+  ["Tiamat 13", 13, "Evil", "Dragon god--Tiamat counts as a Black, Blue, Green, Red, and White Dragon. As long as you have Tiamat and a good dragon in your flight, you can't win the gambit."], 
+  ["White Hunter 7", 7, "Evil", "Each weaker opponent pays you 3 gold."]
+]
+
+traditional_mortals_list = [
+  ["The Archmage 9", 9, "Mortal", "All cards you play later this gambit trigger their powers."], 
+  ["Bahamut 13", 13, "Good", "Dragon god--As long as you have Bahamut and an evil dragon in your flight, you can't win the gambit. Power: Each other player with both good and evil dragons in the same flight pays you 10 gold."], 
+  ["Dracolich 10", 10, "Evil", "When the gambit is scored, you get +2 Strength for each dragon in your flight."], 
+  ["The Dragonslayer 8", 8, "Mortal", "Discard a weaker dragon from any flight."], 
+  ["The Druid 6", 6, "Mortal", "The player with the weakest flight wins the gambit instead of the player with the strongest flight."], 
+  ["The Fool 3", 3, "Mortal", "Draw a card for each opponent with a flight stronger than yours."], 
+  ["The Priest 5", 5, "Mortal", "The winner of the gambit splits the stakes with the player to their left."], 
+  ["The Princess 4", 4, "Mortal", "The power of each good dragon in your flight triggers."], 
+  ["The Thief 7", 7, "Mortal", "Steal 7 gold from the stakes."], 
+  ["Tiamat 13", 13, "Evil", "Dragon god--Tiamat counts as a Black, Blue, Green, Red, and White Dragon. As long as you have Tiamat and a good dragon in your flight, you can't win the gambit."]
+]
+
+deck_list = [
+  ["Black 1", 1, "Evil", "Steal 3 gold from the stakes."], 
+  ["Black 2", 2, "Evil", "Steal 3 gold from the stakes."], 
+  ["Black 3", 3, "Evil", "Steal 3 gold from the stakes."], 
+  ["Black 5", 5, "Evil", "Steal 3 gold from the stakes."], 
+  ["Black 6", 6, "Evil", "Steal 3 gold from the stakes."], 
+  ["Black 7", 7, "Evil", "Steal 3 gold from the stakes."], 
+  ["Black 9", 9, "Evil", "Steal 3 gold from the stakes."], 
+  ["Blue 1", 1, "Evil", "Choose one: Each opponent gives you 1 gold or each opponent adds 1 gold to the stakes for each chard in your flight."], 
+  ["Blue 2", 2, "Evil", "Choose one: Each opponent gives you 1 gold or each opponent adds 1 gold to the stakes for each chard in your flight."], 
+  ["Blue 4", 4, "Evil", "Choose one: Each opponent gives you 1 gold or each opponent adds 1 gold to the stakes for each chard in your flight."], 
+  ["Blue 6", 6, "Evil", "Choose one: Each opponent gives you 1 gold or each opponent adds 1 gold to the stakes for each chard in your flight."], 
+  ["Blue 7", 7, "Evil", "Choose one: Each opponent gives you 1 gold or each opponent adds 1 gold to the stakes for each chard in your flight."], 
+  ["Blue 9", 9, "Evil", "Choose one: Each opponent gives you 1 gold or each opponent adds 1 gold to the stakes for each chard in your flight."], 
+  ["Blue 11", 11, "Evil", "Choose one: Each opponent gives you 1 gold or each opponent adds 1 gold to the stakes for each chard in your flight."], 
+  ["Brass 1", 1, "Good", "The opponent to your right chooses either to give you a stronger good dragon from their hand or to pay you 5 gold."], 
+  ["Brass 2", 2, "Good", "The opponent to your right chooses either to give you a stronger good dragon from their hand or to pay you 5 gold."], 
+  ["Brass 3", 3, "Good", "The opponent to your right chooses either to give you a stronger good dragon from their hand or to pay you 5 gold."], 
+  ["Brass 4", 4, "Good", "The opponent to your right chooses either to give you a stronger good dragon from their hand or to pay you 5 gold."], 
+  ["Brass 5", 5, "Good", "The opponent to your right chooses either to give you a stronger good dragon from their hand or to pay you 5 gold."], 
+  ["Brass 7", 7, "Good", "The opponent to your right chooses either to give you a stronger good dragon from their hand or to pay you 5 gold."], 
+  ["Brass 9", 9, "Good", "The opponent to your right chooses either to give you a stronger good dragon from their hand or to pay you 5 gold."], 
+  ["Bronze 1", 1, "Good", "Take the two weakest cards from the ante."], 
+  ["Bronze 3", 3, "Good", "Take the two weakest cards from the ante."], 
+  ["Bronze 6", 6, "Good", "Take the two weakest cards from the ante."], 
+  ["Bronze 7", 7, "Good", "Take the two weakest cards from the ante."], 
+  ["Bronze 8", 8, "Good", "Take the two weakest cards from the ante."], 
+  ["Bronze 9", 9, "Good", "Take the two weakest cards from the ante."], 
+  ["Bronze 11", 11, "Good", "Take the two weakest cards from the ante."], 
+  ["Copper 1", 1, "Good", "Discard this card and replace it with the top card of the deck. That card's power triggers regardless of its strength."], 
+  ["Copper 3", 3, "Good", "Discard this card and replace it with the top card of the deck. That card's power triggers regardless of its strength."], 
+  ["Copper 5", 5, "Good", "Discard this card and replace it with the top card of the deck. That card's power triggers regardless of its strength."], 
+  ["Copper 6", 6, "Good", "Discard this card and replace it with the top card of the deck. That card's power triggers regardless of its strength."], 
+  ["Copper 7", 7, "Good", "Discard this card and replace it with the top card of the deck. That card's power triggers regardless of its strength."], 
+  ["Copper 8", 8, "Good", "Discard this card and replace it with the top card of the deck. That card's power triggers regardless of its strength."], 
+  ["Copper 10", 10, "Good", "Discard this card and replace it with the top card of the deck. That card's power triggers regardless of its strength."], 
+  ["Gold 2", 2, "Good", "Draw a card for each good dragon in your flight."], 
+  ["Gold 4", 4, "Good", "Draw a card for each good dragon in your flight."], 
+  ["Gold 6", 6, "Good", "Draw a card for each good dragon in your flight."], 
+  ["Gold 8", 8, "Good", "Draw a card for each good dragon in your flight."], 
+  ["Gold 9", 9, "Good", "Draw a card for each good dragon in your flight."], 
+  ["Gold 11", 11, "Good", "Draw a card for each good dragon in your flight."], 
+  ["Gold 13", 13, "Good", "Draw a card for each good dragon in your flight."], 
+  ["Green 1", 1, "Evil", "The opponent to your left chooses either to give you a weaker evil dragon from their hand or to pay you 5 gold."], 
+  ["Green 2", 2, "Evil", "The opponent to your left chooses either to give you a weaker evil dragon from their hand or to pay you 5 gold."], 
+  ["Green 4", 4, "Evil", "The opponent to your left chooses either to give you a weaker evil dragon from their hand or to pay you 5 gold."], 
+  ["Green 5", 5, "Evil", "The opponent to your left chooses either to give you a weaker evil dragon from their hand or to pay you 5 gold."], 
+  ["Green 6", 6, "Evil", "The opponent to your left chooses either to give you a weaker evil dragon from their hand or to pay you 5 gold."], 
+  ["Green 8", 8, "Evil", "The opponent to your left chooses either to give you a weaker evil dragon from their hand or to pay you 5 gold."], 
+  ["Green 10", 10, "Evil", "The opponent to your left chooses either to give you a weaker evil dragon from their hand or to pay you 5 gold."], 
+  ["Red 2", 2, "Evil", "The opponent with the strongest flight pays you 1 gold. Take a random card from that player's hand."], 
+  ["Red 3", 3, "Evil", "The opponent with the strongest flight pays you 1 gold. Take a random card from that player's hand."], 
+  ["Red 5", 5, "Evil", "The opponent with the strongest flight pays you 1 gold. Take a random card from that player's hand."], 
+  ["Red 7", 7, "Evil", "The opponent with the strongest flight pays you 1 gold. Take a random card from that player's hand."], 
+  ["Red 8", 8, "Evil", "The opponent with the strongest flight pays you 1 gold. Take a random card from that player's hand."], 
+  ["Red 10", 10, "Evil", "The opponent with the strongest flight pays you 1 gold. Take a random card from that player's hand."], 
+  ["Red 12", 12, "Evil", "The opponent with the strongest flight pays you 1 gold. Take a random card from that player's hand."], 
+  ["Silver 2", 2, "Good", "Each player with at least one good dragon in their hand draws a card."], 
+  ["Silver 3", 3, "Good", "Each player with at least one good dragon in their hand draws a card."], 
+  ["Silver 6", 6, "Good", "Each player with at least one good dragon in their hand draws a card."], 
+  ["Silver 7", 7, "Good", "Each player with at least one good dragon in their hand draws a card."], 
+  ["Silver 8", 8, "Good", "Each player with at least one good dragon in their hand draws a card."], 
+  ["Silver 10", 10, "Good", "Each player with at least one good dragon in their hand draws a card."], 
+  ["Silver 12", 12, "Good", "Each player with at least one good dragon in their hand draws a card."], 
+  ["White 1", 1, "Evil", "The weakest Opponent pays you 2 gold"], 
+  ["White 2", 2, "Evil", "The weakest Opponent pays you 2 gold"], 
+  ["White 3", 3, "Evil", "The weakest Opponent pays you 2 gold"], 
+  ["White 4", 4, "Evil", "The weakest Opponent pays you 2 gold"], 
+  ["White 5", 5, "Evil", "The weakest Opponent pays you 2 gold"], 
+  ["White 6", 6, "Evil", "The weakest Opponent pays you 2 gold"], 
+  ["White 8", 8, "Evil", "The weakest Opponent pays you 2 gold"]
+]
+
+name_list = [
+    # Human names
+    "Aldric Thornheart",
+    "Mira Blackwood",
+    "Gareth Ironfoot",
+    "Elara Moonwhisper",
+    "Thorne Greystone",
+    
+    # Elf names
+    "Faelwen Silverleaf",
+    "Thalion Starweaver",
+    "Lysandra Dawnbringer",
+    "Aelar Windwhisper",
+    "Silaqui Nightshade",
+    
+    # Dwarf names
+    "Thorin Ironbeard",
+    "Brenna Stoneforge",
+    "Balin Hammerfall",
+    "Gilda Deepdelver",
+    "Kromm Firestone",
+    
+    # Halfling names
+    "Pippin Goodbarrel",
+    "Rosie Underhill",
+    "Merric Tosscobble",
+    "Lidda Tealeaf",
+    "Finnegan Brushgather",
+    
+    # Dragonborn names
+    "Kriv Thunderscale",
+    "Sora Flameheart",
+    "Balasar Ironclaw",
+    "Mishann Emberwing",
+    "Torinn Goldbreath",
+    
+    # Tiefling names
+    "Zariel Nightshade",
+    "Virtue Ashenblade",
+    "Morthos Shadowhorn",
+    "Akta Hellfire",
+    "Nemeia Darkwhisper",
+    
+    # Half-Orc names
+    "Grommash Skullcrusher",
+    "Yevelda Ironhide",
+    "Thokk Bloodfang",
+    "Krazka Bonegrinder",
+    "Gorzak Steelfist",
+    
+    # Gnome names
+    "Bimpnoddle Tinkertop",
+    "Zanna Sparklegem",
+    "Fibblestib Cogsworth",
+    "Nyx Quickfingers",
+    "Jebeddo Moonwhirl",
+    
+    # Half-Elf names
+    "Aramil Silvermoon",
+    "Liara Softwind",
+    "Talos Brightwood",
+    "Shiera Ravenshadow",
+    "Eryndor Stormborn"
+]
