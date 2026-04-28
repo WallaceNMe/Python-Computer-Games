@@ -1,10 +1,14 @@
 import random, time, os, sys
-from variables import name_list, deck_list, traditional_mortals_list
+from cards import name_list, deck_list, traditional_mortals_list, mortals_list, special_dragons_list
 from collections import Counter
 clear = lambda: os.system('clear')
 
-# Changed card format. Fix errors.
-# Review player.debt tracking system
+# --------------------------------------
+# ---------------- NOTES ---------------
+# --------------------------------------
+
+# RESUME 757
+# card choice method special 10
 # player.buy_cards() - Immediately if no cards, or at start of turn if only 1
 # Special Flights
 # Hand max of 10
@@ -21,40 +25,6 @@ clear = lambda: os.system('clear')
 # Compile a README or game manual that prints at the start of the game. Include choose card commands
 # Draw() prints "You have drawn X". Is that ok for round events/progression.
 # Computers that will steal cards will take the last or first card in the player's hand to try and get a high card. Players can shuffle their hands before choosing which card to give up to avoid this. 
-
-GREEN_BG = '\033[42m\033[30m\033[1m'
-YELLOW_BG = '\033[43m\033[30m\033[1m'
-GRAY_BG = '\033[100m\033[37m\033[1m'
-RESET = '\033[0m'
-RED_BG = '\033[41m\033[30m\033[1m'
-BLUE_BG = '\033[44m\033[30m\033[1m'
-MAGENTA_BG = '\033[45m\033[30m\033[1m'
-CYAN_BG = '\033[46m\033[30m\033[1m'
-WHITE_BG = '\033[47m\033[30m\033[1m'
-BRIGHT_RED_BG = '\033[101m\033[30m\033[1m'
-BRIGHT_GREEN_BG = '\033[102m\033[30m\033[1m'
-BRIGHT_YELLOW_BG = '\033[103m\033[30m\033[1m'
-BRIGHT_BLUE_BG = '\033[104m\033[30m\033[1m'
-BRIGHT_MAGENTA_BG = '\033[105m\033[30m\033[1m'
-BRIGHT_CYAN_BG = '\033[106m\033[30m\033[1m'
-BRIGHT_WHITE_BG = '\033[107m\033[30m\033[1m'
-BLUE_BG_WHITE = '\033[44m\033[37m\033[1m'
-RED_BG_WHITE = '\033[41m\033[37m\033[1m'
-MAGENTA_BG_WHITE = '\033[45m\033[37m\033[1m'
-
-# Card format: ["Green 7", 7, "Evil", "Card effect"]
-
-# Select Mortals
-mortals_list = traditional_mortals_list
-
-# Add Mortals to dragons
-for card in mortals_list:
-  deck_list.append(card)
-
-# Card Lists
-draw_pile = deck_list.copy()
-discard_pile = []
-ante_pile = []
 
 # --------------------------------------
 # --------------- CLASSES --------------
@@ -608,7 +578,6 @@ def check_special_flights():
   # Color = each opponent pays gold to you equal to your second strongest dragon
   # Strength = steal that much gold from the stakes and take two ante cards.
   global stakes
-  
 
 def determine_gambit_winner():
   global stakes, round_leader, current_round, round_events
@@ -674,9 +643,46 @@ def determine_gambit_winner():
 
       # Loop back up to re-evaluate flight totals
 
+
+
+
+def pick_random_special_cards(num, exclude=[]):
+  """Pick num random cards from combined mortal + special dragon pools, excluding already chosen."""
+  combined_pool = [c for c in (mortals_list + special_dragons_list) if c not in exclude]
+  return random.sample(combined_pool, min(num, len(combined_pool)))
+
+def display_card_list(card_pool, header="AVAILABLE CARDS"):
+  """Prints a numbered list of cards with their powers."""
+  print(f"\n{header}")
+  print("-" * 50)
+  for i, card in enumerate(card_pool, 1):
+    print(f"  {i:>2}. {card[0]:<25} - {card[3]}")
+  print()
+
 # --------------------------------------
-# --------------------------------------
+# ------------- INITIALIZE -------------
 # --------------------------------------    
+
+# ---------- Color Reference ----------
+GREEN_BG = '\033[42m\033[30m\033[1m'
+YELLOW_BG = '\033[43m\033[30m\033[1m'
+GRAY_BG = '\033[100m\033[37m\033[1m'
+RESET = '\033[0m'
+RED_BG = '\033[41m\033[30m\033[1m'
+BLUE_BG = '\033[44m\033[30m\033[1m'
+MAGENTA_BG = '\033[45m\033[30m\033[1m'
+CYAN_BG = '\033[46m\033[30m\033[1m'
+WHITE_BG = '\033[47m\033[30m\033[1m'
+BRIGHT_RED_BG = '\033[101m\033[30m\033[1m'
+BRIGHT_GREEN_BG = '\033[102m\033[30m\033[1m'
+BRIGHT_YELLOW_BG = '\033[103m\033[30m\033[1m'
+BRIGHT_BLUE_BG = '\033[104m\033[30m\033[1m'
+BRIGHT_MAGENTA_BG = '\033[105m\033[30m\033[1m'
+BRIGHT_CYAN_BG = '\033[106m\033[30m\033[1m'
+BRIGHT_WHITE_BG = '\033[107m\033[30m\033[1m'
+BLUE_BG_WHITE = '\033[44m\033[37m\033[1m'
+RED_BG_WHITE = '\033[41m\033[37m\033[1m'
+MAGENTA_BG_WHITE = '\033[45m\033[37m\033[1m'
 
 # ---------- Number of Players ----------
 player_count = None
@@ -689,7 +695,6 @@ player_count = int(player_count)
 clear()
 
 # ---------- Player Names ----------
-#print("Choosing player names . . .")
 user_name = "Player 1"
 player_names_list = [user_name]
 num = 1
@@ -709,9 +714,124 @@ for i in range(player_count):
 #   name_list.remove(name)
 #   player_names_list.append(name)
 
+# ---------- Card Deck ----------
+# Card format: ["Green 7", 7, "Evil", "Card effect"]
+
+def print_traditional():
+  clear()
+  traditional_reformatted = [f"{GRAY_BG}{value[0]} [{value[2]}]{RESET} - {value[3]}" for value in traditional_mortals_list]
+  counter = 1
+  for item in traditional_reformatted:
+    print(f"{counter}. {item}")
+    counter += 1
+  proceed()
+
+def print_special_Card_options():
+  print("How would you like to include special cards?")
+  print("  1. Pick 'em  - Each player chooses 1 special card. The rest are chosen randomly.")
+  print("  2. Show 'em  - 10 cards are chosen randomly and revealed to all players.")
+  print("  3. Among Friends - 10 cards are chosen randomly without revealing them.")
+  print("  4. Traditional ('t' to view)")
+print_special_Card_options()
+# Acceptable input
+chosen_method = None
+while chosen_method not in ["1", "2", "3", "4", ""]:
+  chosen_method = input("Enter #: ")
+  if chosen_method == 't':
+    print_traditional()
+    clear()
+    print_special_Card_options()
+
+if chosen_method in ["", "4"]:
+  # Traditional
+  mortals_to_add = traditional_mortals_list
+elif chosen_method == "1":
+  # --- Pick 'em ---
+  # Each player picks 1 special card. Remainder filled randomly.
+  clear()
+  picked_cards = []  
+
+  picks = 1
+  print(f"{user_name}, make your choice:")
+  print("----- MORTALS -----")
+  mortals_counter = 1
+  mortals_reformatted = [f"{GRAY_BG}{mortals_counter}.) {value[0]} [{value[2]}]{RESET} - {value[3]}" for value in mortals_list]
+
+
+
+  for player_num in range(player_count):
+    clear()
+    print(f"======= PLAYER {player_num + 1}: CHOOSE YOUR MORTAL =======")
+    available_mortals = [c for c in mortals_list if c not in picked_cards]
+    display_card_list(available_mortals, "MORTALS")
+
+    mortal_choice = None
+    while mortal_choice not in range(1, len(available_mortals) + 1):
+      try:
+        mortal_choice = int(input(f"Choose a mortal (1-{len(available_mortals)}): "))
+        if mortal_choice not in range(1, len(available_mortals) + 1):
+          print(f"Please enter a number between 1 and {len(available_mortals)}.")
+      except ValueError:
+        print("Please enter a valid number.")
+
+    picked_cards.append(available_mortals[mortal_choice - 1])
+    print(f"  → {available_mortals[mortal_choice - 1][0]} added.")
+
+    clear()
+    print(f"======= PLAYER {player_num + 1}: CHOOSE YOUR SPECIAL DRAGON =======")
+    available_dragons = [c for c in special_dragons_list if c not in picked_cards]
+    display_card_list(available_dragons, "SPECIAL DRAGONS")
+
+    dragon_choice = None
+    while dragon_choice not in range(1, len(available_dragons) + 1):
+      try:
+        dragon_choice = int(input(f"Choose a special dragon (1-{len(available_dragons)}): "))
+        if dragon_choice not in range(1, len(available_dragons) + 1):
+          print(f"Please enter a number between 1 and {len(available_dragons)}.")
+      except ValueError:
+        print("Please enter a valid number.")
+
+    picked_cards.append(available_dragons[dragon_choice - 1])
+    print(f"  → {available_dragons[dragon_choice - 1][0]} added.")
+    proceed()
+
+  # Fill to 10 with random cards from remaining pool
+  remaining_slots = 10 - len(picked_cards)
+  random_fill = pick_random_special_cards(remaining_slots, exclude=picked_cards)
+  mortals_to_add = picked_cards + random_fill
+
+  clear()
+  print("======= FINAL SPECIAL CARDS FOR THIS GAME =======")
+  display_card_list(mortals_to_add, "ALL SPECIAL CARDS IN PLAY")
+  proceed()
+
+elif chosen_method == "2":
+  # --- Show 'em ---
+  clear()
+  mortals_to_add = pick_random_special_cards(10)
+  print("======= SPECIAL CARDS IN PLAY THIS GAME =======")
+  display_card_list(mortals_to_add, "ALL SPECIAL CARDS (REVEALED)")
+  proceed()
+
+elif chosen_method == "3":
+  # --- Among Friends ---
+  clear()
+  mortals_to_add = pick_random_special_cards(10)
+  print("======= SPECIAL CARDS =======")
+  print("\n  10 special cards have been added to the deck without being revealed.\n")
+  proceed()
+
+# Add special cards to deck
+for card in mortals_to_add:
+  deck_list.append(card)
+
+# Card Lists
+draw_pile = deck_list.copy()
+discard_pile = []
+ante_pile = []
+
 # ---------- Starting Hands ----------
 shuffle_deck()
-#print("Dealing starting hands . . .")
 hand_lists = []
 for i in range(player_count):
   player_hand = []
@@ -721,11 +841,9 @@ for i in range(player_count):
   hand_lists.append(player_hand)
 
 # ---------- Initialize Classes ----------
-#print("Calculating starting gold . . .")
 starting_gold = 10 * player_count
 player_list = []
 
-#print("Initializing player classes . . .")
 # USER CLASS
 player_list.append(User(0, player_names_list[0], hand_lists[0], starting_gold))
 
@@ -734,7 +852,6 @@ for i in range(player_count - 1):
   player_list.append(Player(i+1, player_names_list[i+1], hand_lists[i+1], starting_gold))
 
 # ---------- Additional Variables ----------
-#print("Setting final game variables . . .\n")
 stakes = 0
 round_leader = None
 gambit_number = 0
